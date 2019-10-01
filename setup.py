@@ -19,16 +19,15 @@ setup(
     description='',
     long_description=readme,
     long_description_content_type='text/markdown',
-    author='Matthew Miguel'
-    author_email='mmiguel6288code@gmail.com'
-    maintainer='Matthew Miguel'
+    author='Matthew Miguel',
+    author_email='mmiguel6288code@gmail.com',
+    maintainer='Matthew Miguel',
     maintainer_email='mmiguel6288code@gmail.com',
     url='https://github.com/mmiguel6288code/doctestify',
     license='MIT',
     keywords=[
         '',
     ],
-
     classifiers=[
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
