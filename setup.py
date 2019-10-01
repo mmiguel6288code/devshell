@@ -18,6 +18,7 @@ setup(
     version=version,
     description='',
     long_description=readme,
+    long_description_content_type='text/markdown',
     author='Matthew Miguel'
     author_email='mmiguel6288code@gmail.com'
     maintainer='Matthew Miguel'
@@ -29,7 +30,6 @@ setup(
     ],
 
     classifiers=[
-        'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: MIT License',
         'Natural Language :: English',
