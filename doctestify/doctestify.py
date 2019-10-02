@@ -117,7 +117,15 @@ class DoctestInjector(object):
         """
         This returns the updated source code with new inserted docstrings lines for the target object.
         """
-        return ''.join(self.top+[self.indentation+line for line in self.middle] + self.bottom)
+        indented_middle = []
+        last_line = None
+        for line in self.middle:
+            if last_line is None or last_line.endswith(self.newline):
+                indented_middle.append(self.indentation+line)
+            else:
+                indented_middle.append(line)
+            last_line = line
+        return ''.join(self.top+ indented_middle + self.bottom)
     def doctest_console(self):
         """
         This function runs doctests on the target file, loads the file, and enters a special interactive mode with inputs/outputs being recorded.
@@ -134,7 +142,7 @@ class DoctestInjector(object):
 >>> #Doctest code will be written to %s
 >>> #Press Ctrl+D to stop writing code and incorporate session into docstring
 >>> #To abort this session without writing anything into the docstring, call the exit() function
->>> from %s import * ''' % (self.target_fqn,self.filepath,self.module_fqn)
+>>> from %s import * #automatic import by doctestify''' % (self.target_fqn,self.filepath,self.module_fqn)
         console = code.InteractiveConsole()
         console.push('from %s import *' % (self.module_fqn))
         iobuf = self.middle
@@ -153,8 +161,9 @@ class DoctestInjector(object):
             print('No lines were written - exiting')
         else:
             print('Writing doctest lines to file')
+            updated_source = self.source()
             with open(self.filepath,'w') as f:
-                f.write(self.source())
+                f.write(updated_source)
             print('Testing doctest execution of new file')
             revert = False
             try:
@@ -163,7 +172,7 @@ class DoctestInjector(object):
             except:
                 revert = True
                 print('Failed to load new file - reverting back to original file')
-            if oldfailcount != newfailcount:
+            if revert is False and oldfailcount != newfailcount:
                 revert = True
                 print('Failcounts from before did not match after - reverting back to original file')
             if revert:
@@ -171,7 +180,7 @@ class DoctestInjector(object):
                     f.write(self.original_source)
                 print('Updated source code with problems located at: %s' % (self.filepath+'.failed_doctest_insert'))
                 with open(self.filepath+'.failed_doctest_insert','w') as f:
-                    f.write(self.original_source)
+                    f.write(updated_source)
             else:
                 print('File successfully updated')
     def testmod(self):
