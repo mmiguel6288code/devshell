@@ -1,7 +1,7 @@
 from io import open
 from setuptools import find_packages, setup
 
-with open('doctestify.py', 'r') as f:
+with open('doctestify/doctestify.py', 'r') as f:
     for line in f:
         if line.startswith('__version__'):
             version = line.strip().split('=')[1].strip(' \'"')

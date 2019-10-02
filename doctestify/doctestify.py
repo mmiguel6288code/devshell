@@ -1,49 +1,3 @@
-"""
-doctestify is a tool to make it easier to make doctests.
-Doctests are snippets of text that resemble a Python interactive mode session.
-Doctests can be embedded in the docstrings within your code in order to serve two purposes:
-
-1. To provide executable examples to users so they can better understand how to use your code
-
-2. To support automated testing by running these lines and confirming the expected outputs are produced
-
-
-A docstring is a block of inline text within your code at the start of a module, class, or function to document the function. When the builtin help() function is called on an object, the docstrings for that object's class and methods are displayed. Additionally there are a number of tools, such as sphinx or pdoc that generate polished documentation files by scanning docstrings within a project.
-
-This module makes it as easy as possible to make doctests.
-
-1. First decide what target item (package, module, class, or function) you want to make a doctest for. Identify the fully qualified name of that item:
-
-    For a package or module, this is what you would put after the import keyword to import that package or module.
-
-        e.g. import mypackage.mymodule
-
-    For a class or function, this is how you would reference that class or function after importing its module:
-
-        e.g. import mypackage.mymodule; mypackage.mymodule.myclass
-
-        e.g. import mypackage.mymodule; mypackage.mymodule.myclass.mymethod
-
-        e.g. import mypackage.mymodule; mypackage.mymodule.myfunction
-
-2. In a shell or command line terminal, navigate to the folder containing the package or module, then run doctestify with the fully qualified name of the target:
-
-    python -m doctestify mypackage.mymodule.myclass.mymethod
-
-3. This will enter into interactive mode with all objects already imported from the the module containing the target
-
-    from mypackage.mymodule import *
-
-    In interactive mode, you now type all the commands you want to be included in doctests.
-    The inputs you type, as well as everything that is printed to stdout will be collected by doctestify.
-    You can press Ctrl+D to leave the interpreter when you are done.
-    At this point, the doctests you just created will be added to the docstring of the target object.
-    
-
-To ensure the doctest insertion process works, the doctests for the module are run before and after this process.
-The doctests in the updated module should produce no more errors than existed before the updates.
-If there is any issues, the original code will be restored and the updated code will be saved in a separate file ending with ".failed_doctest_insert"
-"""
 import inspect, ast, re, sys, code, readline, importlib, os, doctest, os.path
 from argparse import ArgumentParser
 from io import StringIO
@@ -56,7 +10,7 @@ try:
 except NameError:
     pass
 
-__version__ = '1.0.0'
+__version__ = '1.0.1'
     
 def get_target(target_fqn):
     """
@@ -89,7 +43,7 @@ class _ModStdout(object):
         self.iobuf.append(data)
         sys.__stdout__.write(data)
 
-class DocstringInjector(object):
+class DoctestInjector(object):
     """
     This class loads a target object by its fully qualified name and parses its source code to determine how to insert docstring lines for that object.
     """
@@ -180,9 +134,9 @@ class DocstringInjector(object):
 >>> #Doctest code will be written to %s
 >>> #Press Ctrl+D to stop writing code and incorporate session into docstring
 >>> #To abort this session without writing anything into the docstring, call the exit() function
->>> from %s import * ''' % (args.target,di.filepath,di.module_fqn)
+>>> from %s import * ''' % (self.target_fqn,self.filepath,self.module_fqn)
         console = code.InteractiveConsole()
-        console.push('from %s import *' % (di.module_fqn))
+        console.push('from %s import *' % (self.module_fqn))
         iobuf = self.middle
         _modstdout = _ModStdout(iobuf)
         def mod_input(prompt,iobuf=iobuf,_modstdout=_modstdout,newline=self.newline):
@@ -199,7 +153,7 @@ class DocstringInjector(object):
             print('No lines were written - exiting')
         else:
             print('Writing doctest lines to file')
-            with open(di.filepath,'w') as f:
+            with open(self.filepath,'w') as f:
                 f.write(self.source())
             print('Testing doctest execution of new file')
             revert = False
@@ -213,10 +167,10 @@ class DocstringInjector(object):
                 revert = True
                 print('Failcounts from before did not match after - reverting back to original file')
             if revert:
-                with open(di.filepath,'w') as f:
+                with open(self.filepath,'w') as f:
                     f.write(self.original_source)
-                print('Updated source code with problems located at: %s' % (di.filepath+'.failed_doctest_insert'))
-                with open(di.filepath+'.failed_doctest_insert','w') as f:
+                print('Updated source code with problems located at: %s' % (self.filepath+'.failed_doctest_insert'))
+                with open(self.filepath+'.failed_doctest_insert','w') as f:
                     f.write(self.original_source)
             else:
                 print('File successfully updated')
@@ -228,9 +182,12 @@ class DocstringInjector(object):
         failcount,testcount = doctest.testmod(module)
         return failcount,testcount
 
-if __name__ == '__main__':
+def main():
+    """
+    This is the main function used when doctestify is called from the shell/commandline
+    """
     argparser = ArgumentParser()
     argparser.add_argument('target',help='fully qualified name of a package, module, class, or function')
     args = argparser.parse_args()
-    di = DocstringInjector(args.target)
+    di = DoctestInjector(args.target)
     di.doctest_console()

@@ -1,5 +1,4 @@
-# doctestify
-
+"""
 doctestify is a tool to make it easier to make doctests.
 Doctests are snippets of text that resemble a Python interactive mode session.
 Doctests can be embedded in the docstrings within your code in order to serve two purposes:
@@ -38,9 +37,10 @@ This module makes it as easy as possible to make doctests.
     The inputs you type, as well as everything that is printed to stdout will be collected by doctestify.
     You can press Ctrl+D to leave the interpreter when you are done.
     At this point, the doctests you just created will be added to the docstring of the target object.
-
+    
 
 To ensure the doctest insertion process works, the doctests for the module are run before and after this process.
 The doctests in the updated module should produce no more errors than existed before the updates.
 If there is any issues, the original code will be restored and the updated code will be saved in a separate file ending with ".failed_doctest_insert"
-
+"""
+from .doctestify import *
