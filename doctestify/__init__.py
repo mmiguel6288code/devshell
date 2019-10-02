@@ -52,7 +52,9 @@ The doctests in the updated module should produce no more errors than existed be
 If there are any issues, the original code will be restored and the updated code will be saved in a separate file ending with ".failed_doctest_insert"
 
 ## Full Example
+
 Full example from shell:
+
     ```
     $ cat <<EOF > mymodule.py
     > def myfunction(x):
@@ -62,11 +64,11 @@ Full example from shell:
     Testing doctest execution of original file
     ...done: Fail count = 0, Total count = 0
     Entering interactive console:
-    >>> #Creating doctest for mymodule.myfunction
-    >>> #Doctest code will be written to /home/mtm/interspace/doctestify/mymodule.py
-    >>> #Press Ctrl+D to stop writing code and incorporate session into docstring
-    >>> #To abort this session without writing anything into the docstring, call the exit() function
-    >>> from mymodule import * #automatic import by doctestify
+    >>> &#35Creating doctest for mymodule.myfunction
+    >>> &#35Doctest code will be written to /home/mtm/interspace/doctestify/mymodule.py
+    >>> &#35Press Ctrl+D to stop writing code and incorporate session into docstring
+    >>> &#35To abort this session without writing anything into the docstring, call the exit() function
+    >>> from mymodule import * &#35automatic import by doctestify
     >>> f(20)
     400
     >>>
