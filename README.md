@@ -53,7 +53,9 @@ The doctests in the updated module should produce no more errors than existed be
 If there are any issues, the original code will be restored and the updated code will be saved in a separate file ending with ".failed_doctest_insert"
 
 ## Full Example
+
 Full example from shell:
+
     ```
     $ cat <<EOF > mymodule.py
     > def myfunction(x):
