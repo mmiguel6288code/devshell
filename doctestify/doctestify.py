@@ -138,11 +138,11 @@ class DoctestInjector(object):
         print('...done: Fail count = %d, Total count = %d' % (oldfailcount,oldtestcount))
         print('Entering interactive console:')
 
-        banner='''>>> #Creating doctest for %s
->>> #Doctest code will be written to %s
->>> #Press Ctrl+D to stop writing code and incorporate session into docstring
->>> #To abort this session without writing anything into the docstring, call the exit() function
->>> from %s import * #automatic import by doctestify''' % (self.target_fqn,self.filepath,self.module_fqn)
+        banner='''Creating doctest for %s
+Doctest code will be written to %s
+Press Ctrl+D to stop writing code and incorporate session into docstring
+To abort this session without writing anything into the docstring, call the exit() function
+>>> from %s import * # automatic import by doctestify''' % (self.target_fqn,self.filepath,self.module_fqn)
         console = code.InteractiveConsole()
         console.push('from %s import *' % (self.module_fqn))
         iobuf = self.middle

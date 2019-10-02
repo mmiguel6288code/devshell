@@ -64,11 +64,11 @@ Full example from shell:
     Testing doctest execution of original file
     ...done: Fail count = 0, Total count = 0
     Entering interactive console:
-    >>> &#35Creating doctest for mymodule.myfunction
-    >>> &#35Doctest code will be written to /home/mtm/interspace/doctestify/mymodule.py
-    >>> &#35Press Ctrl+D to stop writing code and incorporate session into docstring
-    >>> &#35To abort this session without writing anything into the docstring, call the exit() function
-    >>> from mymodule import * &#35automatic import by doctestify
+    Creating doctest for mymodule.myfunction
+    Doctest code will be written to /home/mtm/interspace/doctestify/mymodule.py
+    Press Ctrl+D to stop writing code and incorporate session into docstring
+    To abort this session without writing anything into the docstring, call the exit() function
+    >>> from mymodule import * # automatic import by doctestify
     >>> f(20)
     400
     >>>
