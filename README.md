@@ -18,21 +18,26 @@ This module makes it as easy as possible to make doctests.
     For a package or module, this is what you would put after the import keyword to import that package or module.
     For a class or function, this is how you would reference that class or function after importing its module:
 
-    Examples:
-        >>> import mypackage.mymodule;
-        >>> target_package = mypackage
-        >>> target_module = mypackage.mymodule
-        >>> target_class = mypackage.mymodule.myclass
-        >>> target_method = mypackage.mymodule.myclass.mymethod
-        >>> target_function = mypackage.mymodule.myfunction
+    Example fully qualified names for different types of targets:
+    ```
+         import mypackage.mymodule;
+         target_package = mypackage
+         target_module = mypackage.mymodule
+         target_class = mypackage.mymodule.myclass
+         target_method = mypackage.mymodule.myclass.mymethod
+         target_function = mypackage.mymodule.myfunction
+    ```
 
 2. In a shell or command line terminal, navigate to the folder containing the package or module, then run doctestify with the fully qualified name of the target:
 
     python -m doctestify mypackage.mymodule.myclass.mymethod
 
 3. This will enter into interactive mode with all objects already imported from the the module containing the target
+    ```
+        >>> from mypackage.mymodule import *
+        >>>
+    ```
 
-    >>> from mypackage.mymodule import *
 
     In interactive mode, you now type all the commands you want to be included in doctests.
     The inputs you type, as well as everything that is printed to stdout will be collected by doctestify.
