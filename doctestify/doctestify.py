@@ -166,8 +166,8 @@ To abort this session without writing anything into the targeted file, call the 
             sys.stderr = _modstderr
             return s
         console.raw_input = mod_input
-        sys.stdout = _modstdout
-        sys.stderr = _modstderr
+        #sys.stdout = _modstdout
+        #sys.stderr = _modstderr
         console.interact(banner=banner)
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
