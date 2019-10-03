@@ -42,6 +42,17 @@ class _ModStdout(object):
     def write(self,data):
         self.iobuf.append(data)
         sys.__stdout__.write(data)
+class _ModStderr(object):
+    def __init__(self,iobuf):
+        self.iobuf = iobuf
+    def flush(self):
+        sys.__stderr__.flush()
+    def writelines(self,lines):
+        self.iobuf.extend(data)
+        sys.__stderr__.writelines(lines)
+    def write(self,data):
+        self.iobuf.append(data)
+        sys.__stderr__.write(data)
 
 class DoctestInjector(object):
     """
@@ -145,16 +156,21 @@ To abort this session without writing anything into the targeted file, call the 
         console.push('from %s import *' % (self.module_fqn))
         iobuf = self.middle
         _modstdout = _ModStdout(iobuf)
-        def mod_input(prompt,iobuf=iobuf,_modstdout=_modstdout,newline=self.newline):
+        _modstderr = _ModStderr(iobuf)
+        def mod_input(prompt,iobuf=iobuf,_modstdout=_modstdout,_modstderr=_modstderr,newline=self.newline):
             sys.stdout = sys.__stdout__ #when input() is happening - need normal stdout for readline (up/down arrowkeys) to work properly
+            sys.stderr = sys.__stderr__
             s = input(prompt)
             iobuf.append(prompt+s+newline)
             sys.stdout = _modstdout
+            sys.stderr = _modstderr
             return s
         console.raw_input = mod_input
         sys.stdout = _modstdout
+        sys.stderr = _modstderr
         console.interact(banner=banner)
         sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
         if len(iobuf) == 0:
             print('No lines were written - exiting')
         else:
