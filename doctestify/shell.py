@@ -1,8 +1,8 @@
-import os, pkgutil, os.path, readline, inspect, doctest, sys
+import os, pkgutil, os.path, readline, inspect, doctest, sys, re
 from cmd import Cmd
-from .doctestify import doctestify, get_target
+from .core import doctestify, get_target
 
-class DoctestifyCmd(Cmd):
+class DoctestifyCmd(Cmd,object):
     """
     This implements the command line interface for doctestify
     """
@@ -10,6 +10,7 @@ class DoctestifyCmd(Cmd):
     intro = 'Welcome to the doctestify shell. Type help or ? to list commands.\n'
     _cdable = set(['package','module','class'])
 
+    
 
     def _ls(self):
         if self._ls_cache is not None:
@@ -20,7 +21,24 @@ class DoctestifyCmd(Cmd):
         else:
             current_name,current_type = self.pwd[-1]
             if current_type == 'package':
-                return [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.pwd])]),key=lambda mi: mi[1])]
+
+                self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.pwd])]),key=lambda mi: mi[1])]
+                package_fqn = '.'.join(item[0] for item in self.pwd)
+                pkg = __import__(package_fqn)
+                for item in self.pwd[1:]:
+                    pkg = getattr(pkg,item[0])
+                for item_name,item in pkg.__dict__.items():
+                    if inspect.getmodule(item) != pkg:
+                        continue
+                    if inspect.isfunction(item):
+                        self._ls_cache.append((item_name,'function'))
+                    elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
+                        self._ls_cache.append((item_name,'coroutine'))
+                    elif inspect.isclass(item):
+                        self._ls_cache.append((item_name,'class'))
+                self._ls_cache.sort()
+                return self._ls_cache
+
             elif current_type == 'module':
                 module_fqn = '.'.join(item[0] for item in self.pwd)
                 mod = __import__(module_fqn)
@@ -28,9 +46,11 @@ class DoctestifyCmd(Cmd):
                     mod = getattr(mod,item[0])
                 self._ls_cache = []
                 for item_name,item in mod.__dict__.items():
+                    if inspect.getmodule(item) != mod:
+                        continue
                     if inspect.isfunction(item):
                         self._ls_cache.append((item_name,'function'))
-                    elif inspect.iscoroutinefunction(item):
+                    elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
                         self._ls_cache.append((item_name,'coroutine'))
                     elif inspect.isclass(item):
                         self._ls_cache.append((item_name,'class'))
@@ -50,7 +70,7 @@ class DoctestifyCmd(Cmd):
                         self._ls_cache.append((item_name,'method'))
                     elif inspect.isfunction(item):
                         self._ls_cache.append((item_name,'function'))
-                    elif inspect.iscoroutinefunction(item):
+                    elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
                         self._ls_cache.append((item_name,'coroutine'))
                     elif inspect.isclass(item):
                         self._ls_cache.append((item_name,'class'))
@@ -65,6 +85,45 @@ class DoctestifyCmd(Cmd):
         self.pwd = []
         self._ls_cache = None
         super(DoctestifyCmd,self).__init__(*args,**kwargs)
+    def do_listdir(self,args):
+        """
+    Help: (doctestify)$ listdir path
+        This lists the files/subfolders within the provided operating system folder path
+        If path is not provided, then files/subfolders within the operating system folder path (current working directory) will be listed
+        """
+        if args == '':
+            args = '.'
+        if not os.path.exists(args):
+            print('Error - path does not exist: %s' % args)
+            return
+        if not os.path.isdir(args):
+            print('Error - path is not a folder: %s' % args)
+            return
+        lines = []
+        for item in os.listdir(args):
+            if os.path.isdir(item):
+                itemtype = 'folder'
+            else:
+                itemtype = 'file'
+            lines.append('    '+item.ljust(30)+itemtype)
+        lines.sort()
+        print('\n'.join(lines))
+
+
+
+    def do_chdir(self,args):
+        """
+    Help: (doctestify)$ chdir path
+        This changes the operating system folder path (current working directory) where doctestify will look for packages and modules
+        """
+        if os.path.exists(args) and os.path.isdir(args):
+            os.chdir(args)
+            self.cwd = os.getcwd()
+            self.pwd = []
+            self._ls_cache = None
+        else:
+            print('Error - path does not exist: %s' % args)
+
     def do_doctestify(self,args):
         """
     Help: (doctestify)$ doctestify
@@ -156,15 +215,19 @@ class DoctestifyCmd(Cmd):
             except:
                 print('Failed to get target: %s' % target_fqn)
                 return
-            print(inspect.getdoc(obj))
+            doc = inspect.getdoc(obj)
+            if doc is not None:
+                print('"""\n'+doc+'\n"""')
+            else:
+                print('No docstring exists for target')
         else:
             print('No target identified')
         
 
-    def do_cwd(self,args):
+    def do_getcwd(self,args):
         """
-    Help: (doctestify)$ cwd
-        This displays the operating system folder path where doctestify was run from
+    Help: (doctestify)$ getcwd
+        This displays the operating system folder path (current working directory) where doctestify will look for packages and modules
         """
         print(self.cwd)
     def do_ls(self,args):
@@ -180,18 +243,19 @@ class DoctestifyCmd(Cmd):
         lines = []
         for item_name,item_type in self._ls():
             if item_type in self._cdable:
-                lines.append('    %s%sdirectory' % (item_name.ljust(20), item_type.ljust(20)))
+                lines.append('    %s%sdirectory' % (item_name.ljust(30), item_type.ljust(30)))
             else:
-                lines.append('    %s%snon-directory' % (item_name.ljust(20), item_type.ljust(20)))
+                lines.append('    %s%snon-directory' % (item_name.ljust(30), item_type.ljust(30)))
         print('\n'.join(lines))
     def _pwd(self):
-        return '/'+'.'.join(item[0] for item in self.pwd)
+        return ('/'+'.'.join(item[0] for item in self.pwd),self.pwd[-1][1])
     def do_pwd(self,args):
         """
     Help: (doctestify)$ pwd
         This shows the fully qualified name of the currently targeted item.
         """
-        print(self._pwd())
+        pwd,current_type = self._pwd()
+        print('%s (%s)' % (pwd.ljust(30),current_type))
 
     def _cd(self,args):
         resolved = False
@@ -280,4 +344,33 @@ class DoctestifyCmd(Cmd):
             self.pwd = orig_pwd
             self._ls_cache = orig_ls_cache
             return results
+    def complete_chdir(self,text,line,begin_idx,end_idx):
+        path = re.sub('^\\s*chdir\\s*','',line)
+        pieces = re.split('([/\\\\])',path)
+        if len(pieces) > 1:
+            front = ''.join(pieces[:-2])
+            if front == '':
+                front = '.'
+            last_dlm = pieces[-2]
+            last_piece = pieces[-1]
+        else:
+            front = '.'
+            last_piece = path
+        return [item for item in os.listdir(front) if item.startswith(last_piece) and os.path.isdir(os.path.join(front,item))]
+    def complete_listdir(self,text,line,begin_idx,end_idx):
+        path = re.sub('^\\s*listdir\\s*','',line)
+        pieces = re.split('([/\\\\])',path)
+        if len(pieces) > 1:
+            front = ''.join(pieces[:-2])
+            if front == '':
+                front = '.'
+            last_dlm = pieces[-2]
+            last_piece = pieces[-1]
+        else:
+            front = '.'
+
+            last_piece = path
+        return [item for item in os.listdir(front) if item.startswith(last_piece) and os.path.isdir(os.path.join(front,item))]
+        
+
         

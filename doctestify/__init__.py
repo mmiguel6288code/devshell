@@ -50,6 +50,7 @@ You can also type help followed by a command to get information about that parti
     ```
 
 Use the pwd, cd, and ls commands to navigate through different items:
+
     ```
     doctestify)$ ls
         doctestify          package             directory
@@ -83,6 +84,7 @@ Once you are navigated to the item of interest, run the doctestify command to en
     ```
 
 You can use the doc or source commands to verify the doctest was written in:
+
     ```
     (doctestify)$ doc
     >>> f(20)
@@ -101,5 +103,5 @@ You can use the doc or source commands to verify the doctest was written in:
 
 To exit the doctest shell, just press Ctrl+D or type the quit command.
 """
-from .doctestify import doctestify, set_end_interactive
-from .cli import DoctestifyCmd
+from .core import doctestify, set_end_interactive
+from .shell import DoctestifyCmd
