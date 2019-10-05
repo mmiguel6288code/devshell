@@ -102,5 +102,9 @@ You can use the doc or source commands to verify the doctest was written in:
 
     ```
 
+You can also change the current working directory that the doctestify shell is scanning for modules and packages with.
+You can navigate the filestystem using chdir, listdir, and getcwd, which do the same things as the standard python os module methods of the same name.
+Tab-completion is supported for chdir and listdir.
+
 To exit the doctest shell, just press Ctrl+D or type the quit command.
 
