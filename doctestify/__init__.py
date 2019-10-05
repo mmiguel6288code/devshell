@@ -1,7 +1,7 @@
 """
 doctestify is a tool to make it easier to make doctests.
 
-## Background
+## What are doctests and why should I care?
 Doctests are snippets of text that resemble a Python interactive mode session.
 Doctests can be embedded in the docstrings within your code in order to serve two purposes:
 
@@ -13,75 +13,93 @@ Doctests can be embedded in the docstrings within your code in order to serve tw
 A docstring is a block of inline text within your code at the start of a module, class, or function to document the function. When the builtin help() function is called on an object, the docstrings for that object's class and methods are displayed. Additionally there are a number of tools, such as sphinx or pdoc that generate polished documentation files by scanning docstrings within a project.
 
 ## How to use doctestify
-This module makes it as easy as possible to make doctests.
-
-1. First decide what target item (package, module, class, or function) you want to make a doctest for. Identify the fully qualified name of that item:
-
-    For a package or module, this is what you would put after the import keyword to import that package or module.
-    For a class or function, this is how you would reference that class or function after importing its module:
-
-    Example fully qualified names for different types of targets:
+First open a shell or command line window and navigate to the folder containing the packages and/or modules of interest.
+Then run:
     ```
-         import mypackage.mymodule;
-         target_package = mypackage
-         target_module = mypackage.mymodule
-         target_class = mypackage.mymodule.myclass
-         target_method = mypackage.mymodule.myclass.mymethod
-         target_function = mypackage.mymodule.myfunction
+    $ python -m doctestify
+
+    Starting doctestify command line interface...
+    Welcome to the doctestify shell. Type help or ? to list commands.
+
+    (doctestify)$ 
     ```
 
-2. In a shell or command line terminal, navigate to the folder containing the package or module, then run doctestify with the fully qualified name of the target:
+You will then enter the doctestify shell, which was designed to look and feel very similar to a unix shell.
+The big difference is that instead of navigating through actual files/directories, the doctestify shell navigates through python packages, modules, classes, and functions. Tab-completion is supported.
 
-    python -m doctestify mypackage.mymodule.myclass.mymethod
-
-3. This will enter into interactive mode with all objects already imported from the the module containing the target
+In the shell, you can type help to list all the commands.
     ```
-        >>> from mypackage.mymodule import *
-        >>> 
-    ``` 
+    (doctestify)$ help
 
+    Documented commands (type help <topic>):
+    ========================================
+    EOF  cd  cwd  doc  doctest  doctestify  help  ls  pwd  quit  source
+    ```
 
-    In interactive mode, you now type all the commands you want to be included in doctests.
-    The inputs you type, as well as everything that is printed to stdout will be collected by doctestify.
-    You can press Ctrl+D to leave the interpreter when you are done.
-    At this point, the doctests you just created will be added to the docstring of the target object.
-    
+You can also type help followed by a command to get information about that particular command:
+    ```
+    (doctestify)$ help ls
 
-To ensure the doctest insertion process works, the doctests for the module are run before and after this process.
-The doctests in the updated module should produce no more errors than existed before the updates.
-If there are any issues, the original code will be restored and the updated code will be saved in a separate file ending with ".failed_doctest_insert"
+        Help: (doctestify)$ ls
+            This will show all items contained within the currently targeted item.
+                e.g. for a package, this would list the modules
+                e.g. for a module, this would list the functions and classes
+                etc
+            Note that using this command may result in importing the module containing the currently targeted item.
+            Note that setup.py files will be purposefully excluded because importing/inspecting them without providing commands results in terminating python.k
+    ```
 
-## Full Example
+Use the pwd, cd, and ls commands to navigate through different items:
+    ```
+    doctestify)$ ls
+        doctestify          package             directory
+        test_pkg            package             directory
+        tests               package             directory
+    (doctestify)$ cd test_pkg
+    (doctestify)$ cd test_subpkg.test_mod.f
+    (doctestify)$ pwd
+    /test_pkg.test_subpkg.test_mod.f
+    ```
 
-Full example from shell:
+Once you are navigated to the item of interest, run the doctestify command to enter a recorded interactive python session. All items from the containing module of the targeted item will automatically be imported. You essentially just type the doctest inputs, and the interactive session will evaluate them and display the outputs. When done, press Ctrl+D to exit the interactive session. At this point, doctestify will write the recorded actions into the docstring of the targeted object. Afterwards, it will run doctests on that object to ensure there are no issues. If any issues are encountered, the original file will be restored and the problematic file will be saved with a special suffix in the same folder.
 
     ```
-    $ cat <<EOF > mymodule.py
-    > def myfunction(x):
-    >   return x**2
-    > EOF
-    $ python -m doctestify mymodule.myfunction
+    (doctestify)$ doctestify
     Testing doctest execution of original file
     ...done: Fail count = 0, Total count = 0
     Entering interactive console
-    Doctest insertion targeting object mymodule.myfunction within /home/mtm/interspace/doctestify/mymodule.py
+    Doctest insertion targeting object test_pkg.test_subpkg.test_mod.f within /home/mtm/interspace/doctestify/test_pkg/test_subpkg/test_mod.py
     Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
     To abort this session without writing anything into the targeted file, call the exit() function
-    >>> from mymodule import * # automatic import by doctestify
+    >>> from test_pkg.test_subpkg.test_mod import * # automatic import by doctestify
     >>> f(20)
-    400
-    >>>
+    20
+    >>> 
     Writing doctest lines to file
     Testing doctest execution of new file
     ...done: Fail count = 0 (old=0), Total count = 1 (old=0)
     File successfully updated
-    $cat mymodule.py 
-    def myfunction(x):
-       \"\"\"
-       >>> myfunction(20)
-       400
-       \"\"\"
-       return x**2
-   ```
+
+    ```
+
+You can use the doc or source commands to verify the doctest was written in:
+    ```
+    (doctestify)$ doc
+    >>> f(20)
+    20
+
+    (doctestify)$ source
+    File: /home/mtm/interspace/doctestify/test_pkg/test_subpkg/test_mod.py
+    def f(x):
+    \"\"\"
+    >>> f(20)
+    20
+    \"\"\"
+    return x
+
+    ```
+
+To exit the doctest shell, just press Ctrl+D or type the quit command.
 """
-from .doctestify import *
+from .doctestify import doctestify, set_end_interactive
+from .cli import DoctestifyCmd

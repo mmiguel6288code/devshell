@@ -1,5 +1,4 @@
 import inspect, ast, re, sys, code, readline, importlib, os, doctest, os.path
-from argparse import ArgumentParser
 from io import StringIO
 try:
     from importlib import reload
@@ -30,7 +29,7 @@ def get_target(target_fqn):
     for item in pieces[1:]:
         obj = getattr(obj,item)
     return obj,module,'.'.join(module_fqn)
-get_target.__annotations__ = {'target_fqn':'fully qualified name of target','return':('target object','target module','fully qualified name of module')}
+get_target.__annotations__ = {'target_fqn':'fully qualified name of target','return':('target object','top-level target module','fully qualified name of module')}
 class _ModStdout(object):
     def __init__(self,iobuf):
         self.iobuf = iobuf
@@ -204,13 +203,20 @@ To abort this session without writing anything into the targeted file, call the 
         self.module = module = reload(sys.modules[self.module_fqn])
         failcount,testcount = doctest.testmod(module)
         return failcount,testcount
-
-def main():
+def set_end_interactive(value=True):
     """
-    This is the main function used when doctestify is called from the shell/commandline
+    Setting value=True will make python go into interactive mode when the script terminates.
     """
-    argparser = ArgumentParser()
-    argparser.add_argument('target',help='fully qualified name of a package, module, class, or function')
-    args = argparser.parse_args()
-    di = DoctestInjector(args.target)
+    if value:
+        os.environ['PYTHONINSPECT'] = '1'
+    else:
+        if 'PYTHONINSPECT' in os.environ:
+            del os.environ['PYTHONINSPECT']
+def doctestify(target_fqn):
+    """
+    Start an interactive recording session for the item identified by the given fully qualified name.
+    Write the recorded results to the target object's docstring and test that the doctest passes.
+    """
+    di = DoctestInjector(target_fqn)
     di.doctest_console()
+

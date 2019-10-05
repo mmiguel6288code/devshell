@@ -26,7 +26,7 @@ setup(
     url='https://github.com/mmiguel6288code/doctestify',
     license='MIT',
     keywords=[
-        '',
+        'doctest','doctests','docstring','docstrings','tests','testing','test',
     ],
     classifiers=[
         'Intended Audience :: Developers',
