@@ -130,11 +130,13 @@ class DoctestInjector(object):
         indented_middle = []
         last_line = None
         for line in self.middle:
-            if last_line is None or last_line.endswith(self.newline):
+            line = re.sub(self.newline,self.newline+self.indentation,line)
+            if last_line is None: 
                 indented_middle.append(self.indentation+line)
             else:
                 indented_middle.append(line)
             last_line = line
+        indented_middle[-1] = indented_middle[-1].rstrip() + self.newline #don't indent the ending triple quotes
         return ''.join(self.top+ indented_middle + self.bottom)
     def doctest_console(self):
         """
