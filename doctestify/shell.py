@@ -1,6 +1,9 @@
-import os, pkgutil, os.path, readline, inspect, doctest, sys, re
+import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb
 from cmd import Cmd
 from .core import doctestify, get_target
+
+def _get_args_kwargs(*args,**kwargs):
+    return args,kwargs
 
 class DoctestifyCmd(Cmd,object):
     """
@@ -8,7 +11,8 @@ class DoctestifyCmd(Cmd,object):
     """
     prompt = '(doctestify)$ '
     intro = 'Welcome to the doctestify shell. Type help or ? to list commands.\n'
-    _cdable = set(['package','module','class'])
+    _cdable = set(['package','module','class','root'])
+    _callable = set(['function','method','coroutine','class'])
 
     
 
@@ -77,7 +81,7 @@ class DoctestifyCmd(Cmd,object):
                 self._ls_cache.sort()
                 return self._ls_cache
             else:
-                print('Error - cannot perform ls when targeting a %s' % current_type)
+                print('Error - cannot perform ls when targeting a %s - try to run "cd .." first' % current_type)
                 return []
 
     def __init__(self,*args,**kwargs):
@@ -85,6 +89,47 @@ class DoctestifyCmd(Cmd,object):
         self.pwd = []
         self._ls_cache = None
         super(DoctestifyCmd,self).__init__(*args,**kwargs)
+    def do_h(self,args):
+        """ Alias for help """
+        self.do_help(args)
+
+    def do_debug(self,args):
+        """
+    Help: (doctestify)$ debug(arg1,arg2,...,kwarg1=kwvalue1,kwarg2=kwvalue2,...)
+        If currently targeting a class or function, this will attempt to load and call that code with the provided positional args and keyword args - entering pdb debug mode on the first line. 
+        If currently targeting a package or module, this will enter debug mode at the first line of the module as if the module's file were directly run with python -m pdb <filename>.
+       """
+        target_fqn = '.'.join(item[0] for item in self.pwd)
+        if target_fqn != '':
+            try:
+                obj,mod,mod_fqn = get_target(target_fqn)
+            except:
+                print('Failed to get target: %s' % target_fqn)
+                return
+            args = args.strip()
+            obj_type = self.pwd[-1][1]
+            if len(self.pwd) == 0:
+                print('No target is selected')
+                return
+
+            if obj_type in self._callable:
+                if len(args) > 0:
+                    pargs,kwargs = eval('_get_args_kwargs{args}'.format(args=args),sys.modules[obj.__module__].__dict__,{'_get_args_kwargs':_get_args_kwargs})
+                else:
+                    pargs = tuple()
+                    kwargs = {}
+                result = pdb.runcall(obj,*pargs,**kwargs)
+                print('Return value: %s' % repr(result))
+            else:
+                if len(args) > 0:
+                    print('No arguments are excepted for object type %s' % obj_type)
+                else:
+                    os.system('%s -m pdb %s' % (sys.executable,os.path.abspath(inspect.getsourcefile(obj))))
+
+        else:
+            print('No target identified')
+
+
     def do_listdir(self,args):
         """
     Help: (doctestify)$ listdir path
@@ -163,7 +208,9 @@ class DoctestifyCmd(Cmd,object):
             except:
                 print('Failed to get target: %s' % target_fqn)
                 return
-            fail,total = doctest.run_docstring_examples(obj,sys.modules[obj.__module__].__dict__,True)
+
+            importlib.reload(sys.modules[obj.__module__])
+            doctest.run_docstring_examples(obj,sys.modules[obj.__module__].__dict__,True)
         else:
             print('No target identified')
 
@@ -216,10 +263,19 @@ class DoctestifyCmd(Cmd,object):
                 print('Failed to get target: %s' % target_fqn)
                 return
             doc = inspect.getdoc(obj)
-            if doc is not None:
-                print('"""\n'+doc+'\n"""')
+            lines = []
+            if self.pwd[-1][1] in self._callable:
+                lines.append(self.pwd[-1][1]+': '+self.pwd[-1][0] + str(inspect.signature(obj)))
             else:
-                print('No docstring exists for target')
+                lines.append(self.pwd[-1][1]+': '+self.pwd[-1][0])
+            if doc is not None:
+                lines.append('"""')
+                lines.append(re.sub('\n','\n    ',doc))
+                lines.append('"""')
+            else:
+                lines.append('')
+                lines.append('No docstring exists for target')
+            print ('    '+'\n    '.join(lines))
         else:
             print('No target identified')
         
@@ -248,7 +304,10 @@ class DoctestifyCmd(Cmd,object):
                 lines.append('    %s%snon-directory' % (item_name.ljust(30), item_type.ljust(30)))
         print('\n'.join(lines))
     def _pwd(self):
-        return ('/'+'.'.join(item[0] for item in self.pwd),self.pwd[-1][1])
+        if len(self.pwd) > 0:
+            return ('/'+'.'.join(item[0] for item in self.pwd),self.pwd[-1][1])
+        else:
+            return '/','root'
     def do_pwd(self,args):
         """
     Help: (doctestify)$ pwd

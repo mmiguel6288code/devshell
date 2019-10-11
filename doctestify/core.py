@@ -9,7 +9,7 @@ try:
 except NameError:
     pass
 
-__version__ = '1.1.2'
+__version__ = '1.1.3'
     
 def get_target(target_fqn):
     """
@@ -61,6 +61,8 @@ class DoctestInjector(object):
         self.target_fqn = target_fqn
         obj,module,module_fqn = get_target(target_fqn)
         self.obj = obj
+        importlib.reload(module)
+        importlib.reload(sys.modules[obj.__module__])
         self.module=module
         self.module_fqn = module_fqn
         filepath = os.path.abspath(inspect.getsourcefile(obj))
