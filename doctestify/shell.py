@@ -1,9 +1,14 @@
-import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb
+import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code
 from cmd import Cmd
 from .core import doctestify, get_target
 
 def _get_args_kwargs(*args,**kwargs):
     return args,kwargs
+def _auto_debug_handler(exc_type,exc_value,exc_traceback):
+    traceback.print_exception(exc_type,exc_value,exc_traceback)
+    pdb.post_mortem(exc_traceback)
+_default_excepthook = sys.excepthook
+
 
 class DoctestifyCmd(Cmd,object):
     """
@@ -118,8 +123,11 @@ class DoctestifyCmd(Cmd,object):
                 else:
                     pargs = tuple()
                     kwargs = {}
-                result = pdb.runcall(obj,*pargs,**kwargs)
-                print('Return value: %s' % repr(result))
+                try:
+                    result = pdb.runcall(obj,*pargs,**kwargs)
+                    print('Return value: %s' % repr(result))
+                except:
+                    traceback.print_exc()
             else:
                 if len(args) > 0:
                     print('No arguments are excepted for object type %s' % obj_type)
@@ -198,9 +206,13 @@ class DoctestifyCmd(Cmd,object):
         return self.do_quit(args)
     def do_doctest(self,args):
         """
-    Help: (doctestify)$ doctest
-        This runs the current doctests for the currently targeted item. Verbose mode is enabled.
+    Help: (doctestify)$ doctest [verbose]
+        This runs the current doctests for the currently targeted item. verbose can be True or False. If unspecified, verbose=False.
         """
+        if len(self.pwd) == 0:
+            print('No target identified')
+            return
+        current_type = self.pwd[-1][1]
         target_fqn = '.'.join(item[0] for item in self.pwd)
         if target_fqn != '':
             try:
@@ -208,9 +220,24 @@ class DoctestifyCmd(Cmd,object):
             except:
                 print('Failed to get target: %s' % target_fqn)
                 return
+            if len(args.strip()) > 0:
+                verbose = eval(args)
+            else:
+                verbose = False
+            try:
+                if current_type in self._callable:
+                    importlib.reload(mod)
+                    importlib.reload(sys.modules[obj.__module__])
+                    doctest.run_docstring_examples(obj,sys.modules[obj.__module__].__dict__,verbose)
+                elif current_type in ['package','module']:
+                    importlib.reload(mod)
+                    importlib.reload(obj)
+                    doctest.testmod(obj,verbose=verbose)
+                else:
+                    print('Invalid type to run doctest: %s' % current_type)
+            except:
+                traceback.print_exc()
 
-            importlib.reload(sys.modules[obj.__module__])
-            doctest.run_docstring_examples(obj,sys.modules[obj.__module__].__dict__,True)
         else:
             print('No target identified')
 
@@ -355,6 +382,13 @@ class DoctestifyCmd(Cmd,object):
                     clear_ls_cache = clear_ls_cache or piece_clear_ls_cache
             self._ls_cache = orig_ls_cache
         return (resolved,clear_ls_cache)
+    def do_interactive(self,args):
+        """
+    Help: (doctestify)$ interactive
+        Opens a python interactive session
+        """
+        console = code.InteractiveConsole()
+        console.interact()
 
     def do_cd(self,args):
         """
