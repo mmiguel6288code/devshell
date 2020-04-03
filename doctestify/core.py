@@ -84,7 +84,13 @@ class DoctestInjector(object):
         if isinstance(ast_obj.body[0],ast.Expr) and isinstance(ast_obj.body[0].value,ast.Str):
             #docstring already exists
             ast_doc = ast_obj.body[0]
-            line_index = ast_doc.lineno-1 #last line of docstring (line containing the ending quotes)
+
+            if hasattr(ast_doc,'end_lineno'):
+                #python 3.8+
+                line_index = ast_doc.end_lineno-1 #last line of docstring (line containing the ending quotes)
+            else:
+                #python 3.7-
+                line_index = ast_doc.lineno-1 #last line of docstring (line containing the ending quotes)
             byte_index = ast_doc.col_offset
             indentation = re.search('^\\s*',src_lines[line_index]).group(0) #use docstring end line to determine indentation
             newline = re.search('[\r\n]+$',src_lines[line_index]).group(0) #use docstring end line to determine newline
