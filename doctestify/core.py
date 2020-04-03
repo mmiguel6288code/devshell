@@ -62,7 +62,10 @@ class DoctestInjector(object):
         obj,module,module_fqn = get_target(target_fqn)
         self.obj = obj
         importlib.reload(module)
-        importlib.reload(sys.modules[obj.__module__])
+        if inspect.ismodule(obj):
+            importlib.reload(sys.modules[obj])
+        else:
+            importlib.reload(sys.modules[obj.__module__])
         self.module=module
         self.module_fqn = module_fqn
         filepath = os.path.abspath(inspect.getsourcefile(obj))
