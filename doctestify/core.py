@@ -9,7 +9,7 @@ try:
 except NameError:
     pass
 
-__version__ = '1.1.6'
+__version__ = '1.1.7'
     
 def get_target(target_fqn):
     """
@@ -63,7 +63,7 @@ class DoctestInjector(object):
         self.obj = obj
         importlib.reload(module)
         if inspect.ismodule(obj):
-            importlib.reload(sys.modules[obj])
+            importlib.reload(sys.modules[obj.__name__])
         else:
             importlib.reload(sys.modules[obj.__module__])
         self.module=module
