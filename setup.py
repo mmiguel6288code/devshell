@@ -11,7 +11,7 @@ with open('doctestify/core.py', 'r') as f:
 with open('README.md','r') as f:
     readme = f.read()
 
-REQUIRES = []
+REQUIRES = ['pypager']
 
 setup(
     name='doctestify',

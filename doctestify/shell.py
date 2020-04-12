@@ -1,6 +1,15 @@
 import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code
 from cmd import Cmd
+from pypager.pager import Pager
+from pypager.source import StringSource
+from io import StringIO
 from .core import doctestify, get_target
+
+def paginate(text):
+    p=Pager()
+    p.add_source(StringSource(text,lexer=None))
+    p.run()
+
 
 def _get_args_kwargs(*args,**kwargs):
     return args,kwargs
@@ -244,7 +253,7 @@ class DoctestifyCmd(Cmd,object):
     Help:(doctestify)$ exit
         Exit the doctestify shell.
         """
-        return self.do_quit()
+        return self.do_quit(args)
     def do_EOF(self,args):
         """
     Help: EOF
@@ -272,7 +281,11 @@ class DoctestifyCmd(Cmd,object):
                 verbose = eval(args)
             else:
                 verbose = False
+
             try:
+                stdout_capture = StringIO()
+                sys.stdout = stdout_capture
+                
                 if current_type in self._callable:
                     importlib.reload(mod)
                     importlib.reload(sys.modules[obj.__module__])
@@ -283,9 +296,12 @@ class DoctestifyCmd(Cmd,object):
                     doctest.testmod(obj,verbose=verbose)
                 else:
                     print('Invalid type to run doctest: %s' % current_type)
+                sys.stdout = sys.__stdout__
+                paginate(stdout_capture.getvalue())
+                p.run()
             except:
+                sys.stdout = sys.__stdout__
                 traceback.print_exc()
-
         else:
             print('No target identified')
 
@@ -303,14 +319,14 @@ class DoctestifyCmd(Cmd,object):
                     print('File is empty')
                 else:
                     with open(filepath,'r') as f:
-                        print(f.read())
+                        paginate(f.read())
             elif current_type == 'module':
                 filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
                     with open(filepath,'r') as f:
-                        print(f.read())
+                        paginate(f.read())
             else:
                 try:
                     obj,mod,mod_fqn = get_target(target_fqn)
@@ -322,7 +338,7 @@ class DoctestifyCmd(Cmd,object):
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
-                    print(inspect.getsource(obj))
+                    paginate(inspect.getsource(obj))
         else:
             print('No target identified')
     def do_doc(self,args):
@@ -350,7 +366,7 @@ class DoctestifyCmd(Cmd,object):
             else:
                 lines.append('')
                 lines.append('No docstring exists for target')
-            print ('    '+'\n    '.join(lines))
+            paginate ('    '+'\n    '.join(lines))
         else:
             print('No target identified')
         
