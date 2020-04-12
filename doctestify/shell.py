@@ -253,6 +253,12 @@ class DoctestifyCmd(Cmd,object):
         Exit the doctestify shell.
         """
         return self.do_quit(args)
+    def do_q(self,args):
+        """
+    Help:(doctestify)$ q 
+        Exit the doctestify shell.
+        """
+        return self.do_quit(args)
     def do_EOF(self,args):
         """
     Help: EOF
@@ -459,6 +465,12 @@ class DoctestifyCmd(Cmd,object):
         """
         console = code.InteractiveConsole()
         console.interact()
+    def do_python(self,args):
+        """
+    Help: (doctestify)$ python
+        Opens a python interactive session
+        """
+        self.do_interactive(args)
 
     def do_cd(self,args):
         """
