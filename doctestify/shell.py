@@ -10,7 +10,6 @@ def paginate(text):
     p.add_source(StringSource(text,lexer=None))
     p.run()
 
-
 def _get_args_kwargs(*args,**kwargs):
     return args,kwargs
 def _auto_debug_handler(exc_type,exc_value,exc_traceback):
@@ -298,7 +297,6 @@ class DoctestifyCmd(Cmd,object):
                     print('Invalid type to run doctest: %s' % current_type)
                 sys.stdout = sys.__stdout__
                 paginate(stdout_capture.getvalue())
-                p.run()
             except:
                 sys.stdout = sys.__stdout__
                 traceback.print_exc()
