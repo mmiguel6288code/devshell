@@ -33,6 +33,9 @@ class DoctestifyCmd(Cmd,object):
 
                 self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.pwd])]),key=lambda mi: mi[1])]
                 package_fqn = '.'.join(item[0] for item in self.pwd)
+                cwd = os.getcwd()
+                if not cwd in sys.path:
+                    sys.path.insert(0,cwd)
                 pkg = __import__(package_fqn)
                 for item in self.pwd[1:]:
                     pkg = getattr(pkg,item[0])
@@ -97,6 +100,45 @@ class DoctestifyCmd(Cmd,object):
     def do_h(self,args):
         """ Alias for help """
         self.do_help(args)
+
+    def do_edit(self,args):
+        """
+    Help: (doctestify)$ edit editor
+        Opens the current file in the provided editor (e.g. vim, nano, etc)
+        If the current item is package, opens __init__.py.
+        """
+        editor = args.strip()
+        if len(editor) == 0:
+            print('Specify an editor (e.g. vim, nano)')
+            return
+        target_fqn = '.'.join(item[0] for item in self.pwd)
+        if target_fqn != '':
+            current_name,current_type = self.pwd[-1]
+            if current_type == 'package':
+                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
+                if os.path.getsize(filepath) == 0:
+                    print('File is empty')
+                else:
+                    os.system('%s "%s"' % (editor,filepath))
+            elif current_type == 'module':
+                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+                if os.path.getsize(filepath) == 0:
+                    print('File is empty')
+                else:
+                    os.system('%s "%s"' % (editor,filepath))
+            else:
+                try:
+                    obj,mod,mod_fqn = get_target(target_fqn)
+                except:
+                    print('Failed to get target: %s' % target_fqn)
+                    return
+                filepath = inspect.getsourcefile(obj)
+                print('File:',filepath)
+                os.system('%s "%s"' % (editor,filepath))
+        else:
+            print('No target identified')
+
+
 
     def do_debug(self,args):
         """
@@ -197,6 +239,12 @@ class DoctestifyCmd(Cmd,object):
         """
         print('Exiting doctestify shell...')
         return True
+    def do_exit(self,args):
+        """
+    Help:(doctestify)$ exit
+        Exit the doctestify shell.
+        """
+        return self.do_quit()
     def do_EOF(self,args):
         """
     Help: EOF

@@ -9,7 +9,7 @@ try:
 except NameError:
     pass
 
-__version__ = '1.1.7'
+__version__ = '1.1.8'
     
 def get_target(target_fqn):
     """
