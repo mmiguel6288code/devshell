@@ -296,7 +296,11 @@ class DoctestifyCmd(Cmd,object):
                 else:
                     print('Invalid type to run doctest: %s' % current_type)
                 sys.stdout = sys.__stdout__
-                paginate(stdout_capture.getvalue())
+                results = stdout_capture.getvalue()
+                if len(results) != 0:
+                    paginate(results)
+                else:
+                    print('All doctests passed')
             except:
                 sys.stdout = sys.__stdout__
                 traceback.print_exc()
@@ -364,7 +368,11 @@ class DoctestifyCmd(Cmd,object):
             else:
                 lines.append('')
                 lines.append('No docstring exists for target')
-            paginate ('    '+'\n    '.join(lines))
+            result = ('    '+'\n    '.join(lines))
+            if len(result.strip()) != 0:
+                paginate(result)
+            else:
+                print('No documentation exists for the given target')
         else:
             print('No target identified')
         
