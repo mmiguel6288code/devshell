@@ -16,7 +16,7 @@ REQUIRES = ['pypager']
 setup(
     name='doctestify',
     version=version,
-    description='',
+    description='Shell-like tool to assist in creating and running doctests and inspecting code',
     long_description=readme,
     long_description_content_type='text/markdown',
     author='Matthew Miguel',
@@ -26,7 +26,7 @@ setup(
     url='https://github.com/mmiguel6288code/doctestify',
     license='MIT',
     keywords=[
-        'doctest','doctests','docstring','docstrings','tests','testing','test',
+        'doctest','doctests','docstring','docstrings','tests','testing','test','shell', 'inspect', 'inspection', 'creating','create','run','running','interactive',
     ],
     classifiers=[
         'Intended Audience :: Developers',
