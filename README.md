@@ -20,6 +20,7 @@ A docstring is a block of inline text within your code at the start of a module,
 ## How to use doctestify
 First open a shell or command line window and navigate to the folder containing the packages and/or modules of interest.
 Then run:
+
     ```
     $ python -m doctestify
 
@@ -33,6 +34,7 @@ You will then enter the doctestify shell, which was designed to look and feel ve
 The big difference is that instead of navigating through actual files/directories, the doctestify shell navigates through python packages, modules, classes, and functions. Tab-completion is supported.
 
 In the shell, you can type help to list all the commands.
+
     ```
     (doctestify)$ help
     Documented commands (type help <topic>):
@@ -44,6 +46,7 @@ In the shell, you can type help to list all the commands.
     ```
 
 You can also type help followed by a command to get information about that particular command:
+
     ```
     (doctestify)$ help ls
 
