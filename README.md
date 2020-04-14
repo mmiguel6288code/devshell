@@ -41,7 +41,6 @@ In the shell, you can type help to list all the commands.
     cd        debug    edit        help         mkdir  pytest  read    source
     chdir     doc      exit        interactive  mv     python  rm    
     coverage  doctest  getcwd      listdir      pip    q       rmtree
-
     ```
 
 You can also type help followed by a command to get information about that particular command:
