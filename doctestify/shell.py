@@ -1,10 +1,10 @@
-import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil
+import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil,textwrap
 from contextlib import contextmanager
 from cmd import Cmd
 from pypager.pager import Pager
 from pypager.source import StringSource
 from io import StringIO
-from .core import doctestify, get_target
+from .core import doctestify, get_target, get_ast_obj
 
 @contextmanager
 def capture_stdout():
@@ -76,7 +76,13 @@ class DoctestifyCmd(Cmd,object):
                 cwd = os.getcwd()
                 if not cwd in sys.path:
                     sys.path.insert(0,cwd)
-                pkg = __import__(package_fqn)
+                try:
+                    pkg = __import__(package_fqn)
+                except:
+                    print('Could not fully import package: %s' % package_fqn)
+                    print(textwrap.indent(traceback.format_exc(),'    '))
+                    return
+
                 for item in self.pwd[1:]:
                     pkg = getattr(pkg,item[0])
                 for item_name,item in pkg.__dict__.items():
@@ -93,7 +99,12 @@ class DoctestifyCmd(Cmd,object):
 
             elif current_type == 'module':
                 module_fqn = '.'.join(item[0] for item in self.pwd)
-                mod = __import__(module_fqn)
+                try:
+                    mod = __import__(module_fqn)
+                except:
+                    print('Could not import module: %s' % module_fqn)
+                    print(textwrap.indent(traceback.format_exc(),'    '))
+                    return
                 for item in self.pwd[1:]:
                     mod = getattr(mod,item[0])
                 self._ls_cache = []
@@ -222,9 +233,9 @@ class DoctestifyCmd(Cmd,object):
 
     def do_edit(self,args):
         """
-    Help: (doctestify)$ edit [editor]
+    Help: (doctestify)$ edit editor
         Runs the command editor, passing the file of the currently targeted object in as first argument.
-        If no editor is specified, then pyvim will be used.
+        If no editor is specified, an error message will apppear.
         For most editors (e.g. vim, nano, etc), this will open the file for editing.
         If the current item is package, opens __init__.py.
 
@@ -232,7 +243,8 @@ class DoctestifyCmd(Cmd,object):
         """
         editor = args.strip()
         if len(editor) == 0:
-            editor = ['pyvim']
+            print('Specify an editor (e.g. vim, nano, notepad++.exe, etc)')
+            return
         else:
             editor=[editor]
         target_fqn = '.'.join(item[0] for item in self.pwd)
@@ -258,7 +270,47 @@ class DoctestifyCmd(Cmd,object):
                     return
                 filepath = inspect.getsourcefile(obj)
                 print('File:',filepath)
-                os.system('%s "%s"' % (editor,filepath))
+                run_cmd(editor+[filepath])
+        else:
+            print('No target identified')
+    def do_editvim(self,args):
+        """
+    Help: (doctestify)$ editvim
+        Opens vim to the first source line of the given target
+        If on windows, opens gvim instead.
+        """
+        if sys.platform == 'win32' or sys.platform == 'cygwin':
+            editor=['gvim']
+        else:
+            editor=['vim']
+        target_fqn = '.'.join(item[0] for item in self.pwd)
+        if target_fqn != '':
+            current_name,current_type = self.pwd[-1]
+            if current_type == 'package':
+                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
+                if os.path.getsize(filepath) == 0:
+                    print('File is empty')
+                else:
+
+                    run_cmd(editor+[filepath])
+            elif current_type == 'module':
+                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+                if os.path.getsize(filepath) == 0:
+                    print('File is empty')
+                else:
+                    run_cmd(editor+[filepath])
+            else:
+                #try:
+                if 1:
+                    obj,mod,mod_fqn = get_target(target_fqn)
+                    ast_obj,filepath,source = get_ast_obj(target_fqn,obj,mod,mod_fqn)
+                    lineno = ast_obj.lineno
+                #except:
+                if 0:
+                    print('Failed to get target: %s' % target_fqn)
+                    return
+                print('File:',filepath,'Line:',str(lineno))
+                run_cmd(editor+[filepath,'+'+str(lineno)])
         else:
             print('No target identified')
 
@@ -644,7 +696,10 @@ class DoctestifyCmd(Cmd,object):
         For the usual interpretation, see listdir.
         """
         lines = []
-        for item_name,item_type in self._ls():
+        result = self._ls()
+        if result is None:
+            return
+        for item_name,item_type in result: 
             if item_type in self._cdable:
                 lines.append('    %s%sdirectory' % (item_name.ljust(30), item_type.ljust(30)))
             else:

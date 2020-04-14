@@ -9,7 +9,7 @@ try:
 except NameError:
     pass
 
-__version__ = '1.1.14'
+__version__ = '1.2.0'
     
 def get_target(target_fqn):
     """
@@ -52,7 +52,29 @@ class _ModStderr(object):
     def write(self,data):
         self.iobuf.append(data)
         sys.__stderr__.write(data)
+def get_ast_obj(target_fqn,obj,module,module_fqn):
+    importlib.reload(module)
+    if inspect.ismodule(obj):
+        importlib.reload(sys.modules[obj.__name__])
+    else:
+        importlib.reload(sys.modules[obj.__module__])
+    filepath = os.path.abspath(inspect.getsourcefile(obj))
+    if not filepath.startswith(os.getcwd()):
+        raise Exception('Referenced file is not in the current working directory or any subfolders - this is to protect you from modifying system or site-package code: %s' % repr(filepath))
+    filepath
+    pieces = target_fqn.split('.')
+    with open(filepath,'r') as f:
+        src_lines = f.readlines()
+    source = ''.join(src_lines)
+    tree = ast.parse(source)
+    if inspect.ismodule(obj):
+        ast_obj = tree
+    elif inspect.isclass(obj):
+        ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.ClassDef) and node.name == pieces[-1]][0]
+    elif inspect.isfunction(obj):
+        ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.FunctionDef) and node.name == pieces[-1]][0]
 
+    return ast_obj, filepath,source
 class DoctestInjector(object):
     """
     This class loads a target object by its fully qualified name and parses its source code to determine how to insert docstring lines for that object.
@@ -61,28 +83,9 @@ class DoctestInjector(object):
         self.target_fqn = target_fqn
         obj,module,module_fqn = get_target(target_fqn)
         self.obj = obj
-        importlib.reload(module)
-        if inspect.ismodule(obj):
-            importlib.reload(sys.modules[obj.__name__])
-        else:
-            importlib.reload(sys.modules[obj.__module__])
         self.module=module
         self.module_fqn = module_fqn
-        filepath = os.path.abspath(inspect.getsourcefile(obj))
-        if not filepath.startswith(os.getcwd()):
-            raise Exception('Referenced file is not in the current working directory or any subfolders - this is to protect you from modifying system or site-package code: %s' % repr(filepath))
-        self.filepath=filepath
-        pieces = target_fqn.split('.')
-        with open(filepath,'r') as f:
-            src_lines = f.readlines()
-        self.original_source = ''.join(src_lines)
-        tree = ast.parse(self.original_source)
-        if inspect.ismodule(obj):
-            ast_obj = tree
-        elif inspect.isclass(obj):
-            ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.ClassDef) and node.name == pieces[-1]][0]
-        elif inspect.isfunction(obj):
-            ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.FunctionDef) and node.name == pieces[-1]][0]
+        ast_obj,self.filepath,self.original_source = get_ast_obj(target_fqn,obj,module,module_fqn)
 
         if isinstance(ast_obj.body[0],ast.Expr) and isinstance(ast_obj.body[0].value,ast.Str):
             #docstring already exists
