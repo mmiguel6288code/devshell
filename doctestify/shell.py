@@ -639,6 +639,9 @@ class DoctestifyCmd(Cmd,object):
             etc
         Note that using this command may result in importing the module containing the currently targeted item.
         Note that setup.py files will be purposefully excluded because importing/inspecting them without providing commands results in terminating python.
+
+        This is NOT the same as the usual interpretation of ls in other shells.
+        For the usual interpretation, see listdir.
         """
         lines = []
         for item_name,item_type in self._ls():
@@ -656,6 +659,9 @@ class DoctestifyCmd(Cmd,object):
         """
     Help: (doctestify)$ pwd
         This shows the fully qualified name of the currently targeted item.
+
+        This is NOT the same as the usual interpretation of pwd in other shells.
+        For the usual interpretation, see getcwd.
         """
         pwd,current_type = self._pwd()
         print('%s (%s)' % (pwd.ljust(30),current_type))
@@ -732,6 +738,9 @@ class DoctestifyCmd(Cmd,object):
 
             (doctestify)$ cd ..
                 This removes the last piece of the currently fully qualified name (navigates up to the parent item)
+
+        This is NOT the same as the usual interpretation of cd in other shells.
+        For the usual interpretation, see chdir.
         
         """
         resolved,clear_ls_cache = self._cd(args)
