@@ -11,12 +11,12 @@ with open('doctestify/core.py', 'r') as f:
 with open('README.md','r') as f:
     readme = f.read()
 
-REQUIRES = ['pypager']
+REQUIRES = ['pypager','pyvim']
 
 setup(
     name='doctestify',
     version=version,
-    description='Shell-like tool to assist in creating and running doctests and inspecting code',
+    description='Record an interpreter session and automatically insert it into a docstring. Also provides a shell-like tool that navigates through python packages/modules/classes for making doctests, inspecting, debugging, editing, and testing code.',
     long_description=readme,
     long_description_content_type='text/markdown',
     author='Matthew Miguel',

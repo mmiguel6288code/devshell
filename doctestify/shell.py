@@ -1,14 +1,46 @@
-import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code
+import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil
+from contextlib import contextmanager
 from cmd import Cmd
 from pypager.pager import Pager
 from pypager.source import StringSource
 from io import StringIO
 from .core import doctestify, get_target
 
-def paginate(text):
+@contextmanager
+def capture_stdout():
+    s = StringIO()
+    sys.stdout = s
+    yield s
+    sys.stdout = sys.__stdout__
+   
+def run_cmd(cmd,do_paginate=False,print_also=False):
+    print('Running command:\n  '+' '.join(cmd))
+    if not do_paginate:
+        subprocess.run(cmd)
+    else:
+        proc = subprocess.run(cmd,stdout=subprocess.PIPE)
+        text = proc.stdout.decode('utf-8','replace')
+        paginate(text,print_also=print_also)
+
+def run_coverage(sourcedir,arglist,sourcefilename=None):
+    if sourcefilename is None:
+        cmd1 = [sys.executable,'-m','coverage','run','--source='+os.path.abspath(sourcedir),'--parallel-mode','-m','pytest','--doctest-modules',os.path.abspath(sourcedir)]+arglist
+    else:
+        cmd1 = [sys.executable,'-m','-coverage','run','--source='+os.path.abspath(sourcedir),'--include="'+sourcefilename+'"','--parallel-mode','-m','pytest','--doctest-modules',os.path.abspath(os.path.join(sourcedir,sourcefilename))]+arglist
+    cmd2 = [sys.executable,'-m','coverage','combine']
+    cmd3 = [sys.executable,'-m','coverage','report','-m']
+    cmd4 = [sys.executable,'-m','coverage','erase']
+    run_cmd(cmd1)
+    run_cmd(cmd2)
+    run_cmd(cmd3,do_paginate=True,print_also=True)
+    run_cmd(cmd4)
+
+def paginate(text,print_also=False):
     p=Pager()
     p.add_source(StringSource(text,lexer=None))
     p.run()
+    if print_also:
+        print(text)
 
 def _get_args_kwargs(*args,**kwargs):
     return args,kwargs
@@ -108,17 +140,101 @@ class DoctestifyCmd(Cmd,object):
     def do_h(self,args):
         """ Alias for help """
         self.do_help(args)
+    def default(self,line):
+        os.system(line)
+    def do_pip(self,args):
+        """
+    Help: (doctestify)$ pip command [args...]
+
+        Runs pip
+        """
+        arglist = [arg.strip() for arg in args.split() if arg.strip() != '']
+        run_cmd([sys.executable,'-m','pip']+arglist)
+
+    def do_read(self,args):
+        """
+    Help: (doctestify)$ read filename
+        Opens the selected file in a paginated view (similar to Unix "less" or "more" commands)
+        The preferred locale encoding defined by locale.getpreferredencoding() is used
+        """
+        with open(args,'r') as f:
+            text = f.read()
+        paginate(text)
+
+
+
+    def do_mkdir(self,args):
+        """
+    Help: (doctestify)$ mkdir dirname
+        Creates the specified directory 
+        """
+        os.mkdir(args)
+    def do_rm(self,args):
+        """
+    Help: (doctestify)$ rm filename
+        Deletes the file specified by filename. Will not delete a directory.
+        See rmtree to delete a directory
+        """
+        os.remove(args)
+    def do_rmtree(self,args):
+        """
+    Help: (doctestify)$ rmtree dirname
+        Deletes the directory specified by dirname and all of its contents.
+        See rm to delete a single file
+        """
+        shutil.rmtree(args)
+
+    def do_mv(self,args):
+        """
+    Help: (doctestify)$ mv source target
+        Moves the file or folder at source to target
+        """
+        try:
+            src,dst = args.split()
+        except:
+            print('Invalid syntax')
+            return
+        shutil.move(src,dst)
+    def do_cp(self,args):
+        """
+    Help: (doctestify)$ cp source target
+        Copies the file or folder at source to target
+        """
+        try:
+            src,dst = args.split()
+        except:
+            print('Invalid syntax')
+            return
+        if os.path.isdir(src):
+            shutil.copytree(src,dst)
+        else:
+            shutil.copy(src,dst)
+
+
+    def do_run(self,args):
+        """
+    Help: (doctestify)$ run shellcmd [args...]
+        Runs the given command in a subshell
+        """
+        os.system(args)
+
+
 
     def do_edit(self,args):
         """
-    Help: (doctestify)$ edit editor
-        Opens the current file in the provided editor (e.g. vim, nano, etc)
+    Help: (doctestify)$ edit [editor]
+        Runs the command editor, passing the file of the currently targeted object in as first argument.
+        If no editor is specified, then pyvim will be used.
+        For most editors (e.g. vim, nano, etc), this will open the file for editing.
         If the current item is package, opens __init__.py.
+
+        For editors that have some other command line invocation, see the doctestify run command.
         """
         editor = args.strip()
         if len(editor) == 0:
-            print('Specify an editor (e.g. vim, nano)')
-            return
+            editor = ['pyvim']
+        else:
+            editor=[editor]
         target_fqn = '.'.join(item[0] for item in self.pwd)
         if target_fqn != '':
             current_name,current_type = self.pwd[-1]
@@ -127,13 +243,13 @@ class DoctestifyCmd(Cmd,object):
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
-                    os.system('%s "%s"' % (editor,filepath))
+                    run_cmd(editor+[filepath])
             elif current_type == 'module':
                 filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
-                    os.system('%s "%s"' % (editor,filepath))
+                    run_cmd(editor+[filepath])
             else:
                 try:
                     obj,mod,mod_fqn = get_target(target_fqn)
@@ -300,7 +416,9 @@ class DoctestifyCmd(Cmd,object):
                     importlib.reload(obj)
                     doctest.testmod(obj,verbose=verbose)
                 else:
+                    sys.stdout = sys.__stdout__
                     print('Invalid type to run doctest: %s' % current_type)
+                    return
                 sys.stdout = sys.__stdout__
                 results = stdout_capture.getvalue()
                 if len(results) != 0:
@@ -312,7 +430,130 @@ class DoctestifyCmd(Cmd,object):
                 traceback.print_exc()
         else:
             print('No target identified')
+    def do_pytest(self,args):
+        """
+    Help: (doctestify)$ pytest [pytest_args]
+        This runs the pytest against the currently targeted item. 
+        If pytest is not installed, an error message will be printed.
 
+        The --doctest-modules option is automatically inserted.
+
+        pytest_args are defined in the pytest documentation:
+            https://docs.pytest.org/en/latest/usage.html
+            See --pdb, --trace, --capture
+
+        If there is no currently targeted item, pytest will be run against the folder indicated by getcwd:
+            (doctestify)$ pytest -ra --doctest-modules
+                is equivalent to:
+                    python -m pytest . -ra --doctest-modules
+
+        If there is a target item, pytest will be run specifically against that item.
+            For example, if the currently target object is mypackage.my_module.MyClass.my_test_method, then running 
+            (doctestify)$ pytest -ra
+                is equivalent to:
+                    python -m pytest  /fullpathto/mypackage/my_module.py::MyClass::my_test_method --doctest-modules -ra
+        """
+        try:
+            import pytest
+        except:
+            print('pytest is not installed')
+            return
+
+
+        arglist = [arg.strip() for arg in args.split() if arg.strip() != '']
+        if len(self.pwd) == 0:
+            run_cmd([sys.executable,'-m','pytest',os.path.abspath(self.cwd),'--doctest-modules']+arglist)
+            return
+        current_type = self.pwd[-1][1]
+        item_names = []
+        reached_module = False
+        item_names_inside_module = []
+        for item_name,item_type in self.pwd:
+            item_names.append(item_name)
+            if reached_module:
+                item_names_inside_module.append(item_name)
+            if item_type == 'module':
+                reached_module = True
+        target_fqn = '.'.join(item_names)
+        if target_fqn != '':
+            try:
+                obj,mod,mod_fqn = get_target(target_fqn)
+            except:
+                sys.stdout = sys.__stdout__
+                #results = stdout_capture.getvalue()
+                print('Failed to get target: %s' % target_fqn)
+                return
+            sourcefile = inspect.getsourcefile(obj)
+            pytest_node_id = '::'.join([os.path.abspath(sourcefile)]+item_names_inside_module)
+            run_cmd([sys.executable,'-m','pytest',pytest_node_id,'--doctest-modules']+arglist)
+        else:
+            run_cmd([sys.executable,'-m','pytest',os.path.abspath(self.cwd),'--doctest-modules']+arglist)
+
+    def do_coverage(self,args):
+        """
+    Help: (doctestify)$ coverage [pytest_args]
+        This runs coverage and pytest against the source file containing the currently targeted item. 
+        This does not use the pytest-cov plugin, just the coverage and pytest packages themselves.
+        If pytest and/or coverage are not installed, an error message will be printed.
+
+        The --doctest-modules pytest argument is automatically inserted.
+
+        pytest_args are defined in the pytest documentation:
+            https://docs.pytest.org/en/latest/usage.html
+            See --pdb, --trace, --capture
+
+        If there is no currently targeted item, coverage and pytest will be run against the folder indicated by getcwd:
+            (doctestify)$ coverage -ra
+                is functionally equivalent to:
+                    python -m coverage run --parallel-mode --source=. pytest . -ra --doctest-modules
+                    python -m coverage report -m
+
+        If there is a target item, coverage and pytest will be run specifically against the entire source file containing that item.
+            For example, if the currently target object is mypackage.my_module.MyClass.my_test_method, then running 
+            (doctestify)$ coverage -ra
+                is functionally equivalent to:
+                    python -m coverage run --parallel-mode --source=/fullpathto/mypackage --include=my_module.py pytest  /fullpathto/mypackage/my_module.py -ra --doctest-modules
+                    python -m coverage report -m
+        """
+        try:
+            import coverage
+        except ImportError:
+            print('coverage is not installed')
+            return
+        try:
+            import pytest
+        except ImportError:
+            print('pytest is not installed')
+            return
+        arglist = [arg.strip() for arg in args.split() if arg.strip() != '']
+        if len(self.pwd) == 0:
+            run_coverage(self.cwd,arglist)
+            return
+        current_type = self.pwd[-1][1]
+        item_names = []
+        reached_module = False
+        item_names_inside_module = []
+        for item_name,item_type in self.pwd:
+            item_names.append(item_name)
+            if reached_module:
+                item_names_inside_module.append(item_name)
+            if item_type == 'module':
+                reached_module = True
+        target_fqn = '.'.join(item_names)
+        if target_fqn != '':
+            try:
+                obj,mod,mod_fqn = get_target(target_fqn)
+            except:
+                sys.stdout = sys.__stdout__
+                #results = stdout_capture.getvalue()
+                print('Failed to get target: %s' % target_fqn)
+                return
+            sourcefile = inspect.getsourcefile(obj)
+            sourcefilename = os.path.basename(sourcefile)
+            sourcedir = os.path.dirname(sourcefile)
+            run_coverage(sourcedir,arglist,sourcefilename)
+        else:
+            run_coverage(self.cwd,arglist)
     def do_source(self,args):
         """
     Help: (doctestify)$ source
@@ -376,7 +617,7 @@ class DoctestifyCmd(Cmd,object):
                 lines.append('No docstring exists for target')
             result = ('    '+'\n    '.join(lines))
             if len(result.strip()) != 0:
-                paginate(result)
+                paginate(result,print_also=True)
             else:
                 print('No documentation exists for the given target')
         else:
@@ -501,6 +742,8 @@ class DoctestifyCmd(Cmd,object):
         if clear_ls_cache:
             self._ls_cache = None
     def complete_cd(self,text,line,begin_idx,end_idx):
+        return self._complete_python(text,line,begin_idx,end_idx)
+    def _complete_python(self,text,line,begin_idx,end_idx):
         if '.' not in text:
             return [item[0] for item in self._ls() if item[0].startswith(text)]
         else:
@@ -520,20 +763,30 @@ class DoctestifyCmd(Cmd,object):
             self._ls_cache = orig_ls_cache
             return results
     def complete_chdir(self,text,line,begin_idx,end_idx):
-        path = re.sub('^\\s*chdir\\s*','',line)
-        pieces = re.split('([/\\\\])',path)
-        if len(pieces) > 1:
-            front = ''.join(pieces[:-2])
-            if front == '':
-                front = '.'
-            last_dlm = pieces[-2]
-            last_piece = pieces[-1]
-        else:
-            front = '.'
-            last_piece = path
-        return [item for item in os.listdir(front) if item.startswith(last_piece) and os.path.isdir(os.path.join(front,item))]
+        return self._complete_dirs('chdir',text,line,begin_idx,end_idx)
+
     def complete_listdir(self,text,line,begin_idx,end_idx):
-        path = re.sub('^\\s*listdir\\s*','',line)
+        return self._complete_dirs('listdir',text,line,begin_idx,end_idx)
+
+    def complete_rmtree(self,text,line,begin_idx,end_idx):
+        return self._complete_dirs('rmtree',text,line,begin_idx,end_idx)
+    
+    def complete_rm(self,text,line,begin_idx,end_idx):
+        return self._complete_files('rm',text,line,begin_idx,end_idx)
+
+    def complete_cp(self,text,line,begin_idx,end_idx):
+        return self._complete_lastdirfile('cp',text,line,begin_idx,end_idx)
+    def complete_mv(self,text,line,begin_idx,end_idx):
+        return self._complete_lastdirfile('mv',text,line,begin_idx,end_idx)
+    def complete_read(self,text,line,begin_idx,end_idx):
+        return self._complete_files('read',text,line,begin_idx,end_idx)
+    def complete_run(self,text,line,begin_idx,end_idx):
+        return self._complete_lastdirfile('run',text,line,begin_idx,end_idx)
+    def completedefault(self,text,line,begin_idx,end_idx):
+        return self._complete_lastdirfile(None,text,line,begin_idx,end_idx)
+
+    def _complete_dirs(self,cmd,text,line,begin_idx,end_idx):
+        path = re.sub('^\\s*%s\\s*'%cmd,'',line)
         pieces = re.split('([/\\\\])',path)
         if len(pieces) > 1:
             front = ''.join(pieces[:-2])
@@ -543,9 +796,57 @@ class DoctestifyCmd(Cmd,object):
             last_piece = pieces[-1]
         else:
             front = '.'
-
             last_piece = path
         return [item for item in os.listdir(front) if item.startswith(last_piece) and os.path.isdir(os.path.join(front,item))]
-        
 
-        
+    def _complete_files(self,cmd,text,line,begin_idx,end_idx):
+        path = re.sub('^\\s*%s\\s*'%cmd,'',line)
+        pieces = re.split('([/\\\\])',path)
+        if len(pieces) > 1:
+            front = ''.join(pieces[:-2])
+            if front == '':
+                front = '.'
+            last_dlm = pieces[-2]
+            last_piece = pieces[-1]
+        else:
+            front = '.'
+            last_piece = path
+        return [item for item in os.listdir(front) if item.startswith(last_piece) and not os.path.isdir(os.path.join(front,item))]
+    def _complete_lastdirfile(self,cmd,text,line,begin_idx,end_idx):
+        if cmd is not None:
+            paths = re.sub('^\\s*%s\\s*'%cmd,'',line)
+        else:
+            paths = line
+        qc = len(re.findall('(?<!\\\\)"',paths))
+        if qc > 0:
+            #non-escaped quotes found
+
+            #get the position of the right-most non-escaped quote
+            rq_pos = len(paths) - 1 - re.search('"(?!\\\\)',paths[::-1]).start(0)
+            if qc % 2 == 0:
+                #there are an even number of quotes i.e. we are outside of any quoted argument
+                path = paths[rq_pos+1:].strip()
+
+            else:
+                #there are an odd number of quotes i.e. we are in the middle of a quoted argument
+                path = paths[rq_pos+1:]
+        else:
+            rs_match = re.search(' (?!\\\\)',paths[::-1])
+            if rs_match is not None:
+                #there are non-escaped spaces
+                rs_pos = len(paths) - 1 - rs_match.start(0)
+                path = paths[rs_pos+1:].strip()
+            else:
+                #there are no spaces
+                path = paths
+        pieces = re.split('([/\\\\])',path)
+        if len(pieces) > 1:
+            front = ''.join(pieces[:-2])
+            if front == '':
+                front = '.'
+            last_dlm = pieces[-2]
+            last_piece = pieces[-1]
+        else:
+            front = '.'
+            last_piece = path
+        return [item for item in os.listdir(front) if item.startswith(last_piece)]

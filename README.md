@@ -2,6 +2,10 @@
 
 doctestify is a tool to make it easier to make doctests.
 
+## Key Features
+1. Enables entering an interactive session tied to the docstring of a particular python object. Inputs and responses are automatically recorded and inserted into the docstring as doctests.
+2. Shell-like tool for navigating, inspecting, testing, and making doctests for python objects defined in a project 
+
 ## What are doctests and why should I care?
 Doctests are snippets of text that resemble a Python interactive mode session.
 Doctests can be embedded in the docstrings within your code in order to serve two purposes:
@@ -31,10 +35,13 @@ The big difference is that instead of navigating through actual files/directorie
 In the shell, you can type help to list all the commands.
     ```
     (doctestify)$ help
-
     Documented commands (type help <topic>):
     ========================================
-    EOF  cd  cwd  doc  doctest  doctestify  help  ls  pwd  quit  source
+    EOF       cp       doctestify  h            ls     pwd     quit    run   
+    cd        debug    edit        help         mkdir  pytest  read    source
+    chdir     doc      exit        interactive  mv     python  rm    
+    coverage  doctest  getcwd      listdir      pip    q       rmtree
+
     ```
 
 You can also type help followed by a command to get information about that particular command:
