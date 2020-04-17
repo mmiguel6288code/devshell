@@ -67,7 +67,7 @@ class DoctestifyCmd(Cmd,object):
         if self._ls_cache is not None:
             return self._ls_cache
         if len(self.pwd) == 0:
-            self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([self.cwd]),key=lambda mi: mi[1]) if (mi[1],mi[2]) != ('setup',False)]
+            self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([self.cwd,os.path.join(self.cwd,'src')]),key=lambda mi: mi[1]) if (mi[1],mi[2]) != ('setup',False)]
             return self._ls_cache
         else:
             current_name,current_type = self.pwd[-1]
@@ -757,6 +757,7 @@ class DoctestifyCmd(Cmd,object):
             e.g. for a package, this would list the modules
             e.g. for a module, this would list the functions and classes
             etc
+        If there is no currently targeted item, then all packages in the current working directory or within a subfolder of the current working directory named "src" will be shown.
         Note that using this command may result in importing the module containing the currently targeted item.
         Note that setup.py files will be purposefully excluded because importing/inspecting them without providing commands results in terminating python.
 
@@ -769,7 +770,11 @@ class DoctestifyCmd(Cmd,object):
             return
         for item_name,item_type in result: 
             if item_type in self._cdable:
-                lines.append('    %s%sdirectory' % (item_name.ljust(30), item_type.ljust(30)))
+                if len(self.pwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item_name,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item_name,'__init__.py')):
+                    lines.append('    %s%sdirectory (./src)' % (item_name.ljust(30), item_type.ljust(30)))
+                else:
+                    lines.append('    %s%sdirectory' % (item_name.ljust(30), item_type.ljust(30)))
+
             else:
                 lines.append('    %s%snon-directory' % (item_name.ljust(30), item_type.ljust(30)))
         print('\n'.join(lines))
@@ -797,9 +802,13 @@ class DoctestifyCmd(Cmd,object):
             clear_ls_cache = False
         elif args == '..':
             if len(self.pwd) > 0:
-                self.pwd.pop()
+                last_item,last_item_type = self.pwd.pop()
+                if len(self.pwd) == 0 and last_item_type == 'package' and os.path.basename(self.cwd) == 'src' and os.path.exists(os.path.join(self.cwd,last_item,'__init__.py')) and not os.path.exists(os.path.join(self.cwd,'..',last_item,'__init__.py')):
+                    self.do_chdir('..')
+
             resolved = True
             clear_ls_cache = True
+            #go up if in src
         elif args == '/':
             del self.pwd[:]
             resolved = True
@@ -807,6 +816,8 @@ class DoctestifyCmd(Cmd,object):
         elif '.' not in args:
             for item,item_type in self._ls():
                 if item == args:
+                    if len(self.pwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item,'__init__.py')):
+                        self.do_chdir('src')
                     self.pwd.append((item,item_type))
                     resolved = True
                     clear_ls_cache = True
@@ -849,6 +860,10 @@ class DoctestifyCmd(Cmd,object):
         This changes the currently targeted item.
         
         <argument> can be part of a fully qualified name to append to the end of the current target.
+
+        If there is no current target, then one may cd into a package within the current working directory or within a package in a subfolder of the current working directory named "src".
+        Cding into the "src" subfolder only occurs when the src subfolder has the package with the given name and the current working directory does not.
+        Cding into the "src" subfolder will change the current working directory to be the "src" subfolder.
         Command completion is supported via the tab key.
         Note that performing command line completion at a level may result in importing/loading the module containing the item being examined.
 
@@ -862,6 +877,7 @@ class DoctestifyCmd(Cmd,object):
 
             (doctestify)$ cd ..
                 This removes the last piece of the currently fully qualified name (navigates up to the parent item)
+                If leaving a package to a subfolder named "src", will also change the current working directory to be the parent directory of "src" if a package with the current target as its name exists only in the "src" directory and not in the parent directory.
 
         This is NOT the same as the usual interpretation of cd in other shells.
         For the usual interpretation, see chdir.
