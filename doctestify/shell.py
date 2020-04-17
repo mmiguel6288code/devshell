@@ -530,6 +530,7 @@ class DoctestifyCmd(Cmd,object):
             run_cmd([sys.executable,'-m','pytest',os.path.abspath(self.cwd),'--doctest-modules']+arglist)
             return
         current_type = self.pwd[-1][1]
+
         item_names = []
         reached_module = False
         item_names_inside_module = []
@@ -549,6 +550,8 @@ class DoctestifyCmd(Cmd,object):
                 print('Failed to get target: %s' % target_fqn)
                 return
             sourcefile = inspect.getsourcefile(obj)
+            if current_type == 'package':
+                sourcefile = os.path.dirname(sourcefile)
             pytest_node_id = '::'.join([os.path.abspath(sourcefile)]+item_names_inside_module)
             run_cmd([sys.executable,'-m','pytest',pytest_node_id,'--doctest-modules']+arglist)
         else:
