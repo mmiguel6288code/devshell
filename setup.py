@@ -11,7 +11,7 @@ with open('doctestify/__init__.py', 'r') as f:
 with open('README.md','r') as f:
     readme = f.read()
 
-REQUIRES = ['pypager','pyvim']
+REQUIRES = ['pypager','pytest','coverage']
 
 setup(
     name='doctestify',
