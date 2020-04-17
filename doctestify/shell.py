@@ -28,7 +28,7 @@ def run_coverage(sourcedir,arglist,sourcefilename=None):
     if sourcefilename is None:
         cmd1 = [sys.executable,'-m','coverage','run','--source='+os.path.abspath(sourcedir),'--parallel-mode','-m','pytest','--doctest-modules',os.path.abspath(sourcedir)]+arglist
     else:
-        cmd1 = [sys.executable,'-m','-coverage','run','--source='+os.path.abspath(sourcedir),'--include="'+sourcefilename+'"','--parallel-mode','-m','pytest','--doctest-modules',os.path.abspath(os.path.join(sourcedir,sourcefilename))]+arglist
+        cmd1 = [sys.executable,'-m','coverage','run','--source='+os.path.abspath(sourcedir),'--include="'+sourcefilename+'"','--parallel-mode','-m','pytest','--doctest-modules',os.path.abspath(os.path.join(sourcedir,sourcefilename))]+arglist
     cmd2 = [sys.executable,'-m','coverage','combine']
     cmd3 = [sys.executable,'-m','coverage','report','-m']
     cmd4 = [sys.executable,'-m','coverage','erase']
