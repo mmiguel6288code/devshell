@@ -9,7 +9,6 @@ try:
 except NameError:
     pass
 
-__version__ = '1.2.0'
     
 def get_target(target_fqn):
     """
@@ -52,7 +51,13 @@ class _ModStderr(object):
     def write(self,data):
         self.iobuf.append(data)
         sys.__stderr__.write(data)
-def get_ast_obj(target_fqn,obj,module,module_fqn):
+
+def get_ast_obj(target_fqn,obj=None,module=None,module_fqn=None):
+    """
+    This function returns the ast object of the targeted python object
+    """
+    if obj is None or module is None or module_fqn is None:
+        obj,module,module_fqn = get_target(target_fqn)
     importlib.reload(module)
     if inspect.ismodule(obj):
         importlib.reload(sys.modules[obj.__name__])
@@ -75,6 +80,7 @@ def get_ast_obj(target_fqn,obj,module,module_fqn):
         ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.FunctionDef) and node.name == pieces[-1]][0]
 
     return ast_obj, filepath,source
+
 class DoctestInjector(object):
     """
     This class loads a target object by its fully qualified name and parses its source code to determine how to insert docstring lines for that object.

@@ -1,10 +1,11 @@
-import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil,textwrap
+import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil,textwrap, argparse, shlex
 from contextlib import contextmanager
 from cmd import Cmd
 from pypager.pager import Pager
 from pypager.source import StringSource
 from io import StringIO
-from .core import doctestify, get_target, get_ast_obj
+from .injector import doctestify, get_target, get_ast_obj
+
 
 @contextmanager
 def capture_stdout():
@@ -55,7 +56,7 @@ class DoctestifyCmd(Cmd,object):
     This implements the command line interface for doctestify
     """
     prompt = '(doctestify)$ '
-    intro = 'Welcome to the doctestify shell. Type help or ? to list commands.\n'
+    intro = 'Welcome to the doctestify shell. Type help or ? to list commands. Start a line with ! to execute a shell command.\n'
     _cdable = set(['package','module','class','root'])
     _callable = set(['function','method','coroutine','class'])
 
@@ -152,6 +153,8 @@ class DoctestifyCmd(Cmd,object):
         """ Alias for help """
         self.do_help(args)
     def default(self,line):
+        if line.startswith('!'):
+            line = line[1:]
         os.system(line)
     def do_pip(self,args):
         """
@@ -642,6 +645,58 @@ class DoctestifyCmd(Cmd,object):
                     paginate(inspect.getsource(obj))
         else:
             print('No target identified')
+    def do_grep(self,args):
+        """
+    Help: (doctestify)$ grep pattern [OPTIONS]
+        Searches the source code of the currently targeted item based on the provided regular expression.
+        The source is split into lines and the regular expression is applied to each line.
+        Files are opened for reading in string mode with errors being handled via open()'s errors='backslashreplace' option
+        Regular expressions are according to python interpretation (not standard grep).
+        Only includes python source files (.py$|.py[w3wxi]$|.pxd$)
+        If a package is selected, all files will be looked at.
+        If a module is selected, the module will be looked at.
+        If a sub-module item is selected, only that items source code will be looked at.
+
+        Supported options:
+            -i = Ignore case (re.IGNORECASE)
+                Normally, matching is case sensitive
+                With -i specified, matching is case-insensitive
+
+            -v = Invert match
+                Normally, lines that match the pattern are included
+                With -v, lines that do not match the pattern are included
+            -p = Print to console after displaying
+                Normally, the results will be paginated in a page viewer (similar to unix less)
+                With -p, the results will be paginated and then printed to the console after
+                
+        """
+        target_fqn = '.'.join(item[0] for item in self.pwd)
+        if target_fqn != '':
+            current_name,current_type = self.pwd[-1]
+            if current_type == 'package':
+                #recurse through package directory
+                path = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')))
+                grep(args,path=path)
+                
+            elif current_type == 'module':
+                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+                grep(args,path=filepath)
+            else:
+                try:
+                    obj,mod,mod_fqn = get_target(target_fqn)
+                except:
+                    print('Failed to get target: %s' % target_fqn)
+                    return
+                filepath = inspect.getsourcefile(obj)
+                print('File:',filepath)
+                if os.path.getsize(filepath) == 0:
+                    print('File is empty')
+                else:
+                    grep(args,source=inspect.getsource(obj),path=filepath)
+        else:
+            path = os.path.abspath(os.getcwd())
+            grep(args,path=path)
+
     def do_doc(self,args):
         """
     Help: (doctestify)$ doc
@@ -914,3 +969,54 @@ class DoctestifyCmd(Cmd,object):
             front = '.'
             last_piece = path
         return [item for item in os.listdir(front) if item.startswith(last_piece)]
+
+def grep(args,source=None,path=None):
+    parser = argparse.ArgumentParser()
+    parser.add_argument('pattern')
+    parser.add_argument('-i',action='store_true')
+    parser.add_argument('-v',action='store_true')
+    parser.add_argument('-p',action='store_true')
+    parsed_args = parser.parse_args(shlex.split(args))
+
+
+    flags = (re.I if parsed_args.i else 0)
+    invert_match = parsed_args.v
+
+    regex = re.compile(parsed_args.pattern,flags)
+    if source is None:
+        def sourcegen_func():
+            if os.path.isdir(path):
+                #recurse
+                pathgen = ((os.path.join(dirpath,filename) for filename in filenames) for dirpath,dirnames,filenames in os.walk(path))
+            else:
+                pathgen = ((path for _ in [None]) for _ in [None])
+            for filegen in pathgen:
+                for filepath in filegen:
+                    if re.search('^\\.(py|py[w3wxi]|pxd)$',os.path.splitext(filepath)[1]) is not None:
+                        with open(filepath,'r',errors='backslashreplace') as f:
+                            source = f.read()
+                        yield (source,filepath)
+        sourcegen = sourcegen_func()
+    else:
+        sourcegen = ((source,path) for _ in [None])
+    output_lines = []
+    for source,path in sourcegen:
+        filename = os.path.basename(path)
+        for line_i,line in enumerate(source.splitlines()):
+            matched = regex.search(line) is not None
+            include = matched ^ invert_match
+            if include:
+                output_lines.append(':'.join([filename,str(line_i),line]))
+    results = '\n'.join(output_lines)
+    paginate(results)
+    if parsed_args.p:
+        print(results)
+    return results
+
+
+
+
+
+
+
+

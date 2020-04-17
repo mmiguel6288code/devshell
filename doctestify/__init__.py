@@ -107,5 +107,6 @@ Tab-completion is supported for chdir and listdir.
 
 To exit the doctest shell, just press Ctrl+D or type the quit command.
 """
-from .core import doctestify, set_end_interactive
+from .injector import doctestify, set_end_interactive
 from .shell import DoctestifyCmd
+__version__ = '1.2.1'
