@@ -5,6 +5,7 @@ from pypager.pager import Pager
 from pypager.source import StringSource
 from io import StringIO
 from .injector import doctestify, get_target, get_ast_obj
+from . import __version__
 
 
 @contextmanager
@@ -56,7 +57,7 @@ class DoctestifyCmd(Cmd,object):
     This implements the command line interface for doctestify
     """
     prompt = '(doctestify)$ '
-    intro = 'Welcome to the doctestify shell. Type help or ? to list commands. Start a line with ! to execute a shell command.\n'
+    intro = 'doctestify version %s\nWelcome to the doctestify shell. Type help or ? to list commands. Start a line with ! to execute a shell command in a sub-shell (does not retain environmental variables).\n' % __version__
     _cdable = set(['package','module','class','root'])
     _callable = set(['function','method','coroutine','class'])
 
@@ -164,6 +165,15 @@ class DoctestifyCmd(Cmd,object):
         """
         arglist = [arg.strip() for arg in args.split() if arg.strip() != '']
         run_cmd([sys.executable,'-m','pip']+arglist)
+    def do_restart(self,args):
+        """
+    Help: (doctestify)$ restart
+
+        Restarts doctestify at the current working directory with the current path
+        Sometimes needed to cleanly re-import scripts that were already imported and then changed.
+        """
+        sys.exit(subprocess.run([sys.executable,'-m','doctestify','-d',os.path.abspath(os.getcwd()),'-t','.'.join([item[0] for item in self.pwd])]).returncode)
+
 
     def do_read(self,args):
         """
