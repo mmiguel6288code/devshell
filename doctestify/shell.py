@@ -796,7 +796,8 @@ class DoctestifyCmd(Cmd,object):
             resolved = True
             clear_ls_cache = False
         elif args == '..':
-            self.pwd.pop()
+            if len(pwd) > 0:
+                self.pwd.pop()
             resolved = True
             clear_ls_cache = True
         elif args == '/':
