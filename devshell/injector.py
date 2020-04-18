@@ -172,7 +172,7 @@ class DoctestInjector(object):
         banner='''Doctest insertion targeting object %s within %s
 Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
 To abort this session without writing anything into the targeted file, call the exit() function
->>> from %s import * # automatic import by doctestify''' % (self.target_fqn,self.filepath,self.module_fqn)
+>>> from %s import * # automatic import by devshell''' % (self.target_fqn,self.filepath,self.module_fqn)
         console = code.InteractiveConsole()
         console.push('from %s import *' % (self.module_fqn))
         iobuf = self.middle

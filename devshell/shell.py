@@ -52,12 +52,12 @@ def _auto_debug_handler(exc_type,exc_value,exc_traceback):
 _default_excepthook = sys.excepthook
 
 
-class DoctestifyCmd(Cmd,object):
+class DevshellCmd(Cmd,object):
     """
-    This implements the command line interface for doctestify
+    This implements the command line interface for devshell
     """
-    prompt = '(doctestify)$ '
-    intro = 'doctestify version %s\nWelcome to the doctestify shell. Type help or ? to list commands. Start a line with ! to execute a shell command in a sub-shell (does not retain environmental variables).\n' % __version__
+    prompt = '(devshell)$ '
+    intro = 'devshell version %s\nWelcome to devshell. Type help or ? to list commands. Start a line with ! to execute a shell command in a sub-shell (does not retain environmental variables).\n' % __version__
     _cdable = set(['package','module','class','root'])
     _callable = set(['function','method','coroutine','class'])
 
@@ -162,7 +162,7 @@ class DoctestifyCmd(Cmd,object):
         self.cwd = os.getcwd()
         self.pwd = []
         self._ls_cache = None
-        super(DoctestifyCmd,self).__init__(*args,**kwargs)
+        super(DevshellCmd,self).__init__(*args,**kwargs)
     def do_h(self,args):
         """ Alias for help """
         self.do_help(args)
@@ -172,7 +172,7 @@ class DoctestifyCmd(Cmd,object):
         os.system(line)
     def do_pip(self,args):
         """
-    Help: (doctestify)$ pip command [args...]
+    Help: (devshell)$ pip command [args...]
 
         Runs pip
         """
@@ -180,17 +180,17 @@ class DoctestifyCmd(Cmd,object):
         run_cmd([sys.executable,'-m','pip']+arglist)
     def do_restart(self,args):
         """
-    Help: (doctestify)$ restart
+    Help: (devshell)$ restart
 
-        Restarts doctestify at the current working directory with the current path
+        Restarts devshell at the current working directory with the current path
         Sometimes needed to cleanly re-import scripts that were already imported and then changed.
         """
-        sys.exit(subprocess.run([sys.executable,'-m','doctestify','-d',os.path.abspath(os.getcwd()),'-t','.'.join([item[0] for item in self.pwd])]).returncode)
+        sys.exit(subprocess.run([sys.executable,'-m','devshell','-d',os.path.abspath(os.getcwd()),'-t','.'.join([item[0] for item in self.pwd])]).returncode)
 
 
     def do_read(self,args):
         """
-    Help: (doctestify)$ read filename
+    Help: (devshell)$ read filename
         Opens the selected file in a paginated view (similar to Unix "less" or "more" commands)
         The preferred locale encoding defined by locale.getpreferredencoding() is used
         """
@@ -202,20 +202,20 @@ class DoctestifyCmd(Cmd,object):
 
     def do_mkdir(self,args):
         """
-    Help: (doctestify)$ mkdir dirname
+    Help: (devshell)$ mkdir dirname
         Creates the specified directory 
         """
         os.mkdir(args)
     def do_rm(self,args):
         """
-    Help: (doctestify)$ rm filename
+    Help: (devshell)$ rm filename
         Deletes the file specified by filename. Will not delete a directory.
         See rmtree to delete a directory
         """
         os.remove(args)
     def do_rmtree(self,args):
         """
-    Help: (doctestify)$ rmtree dirname
+    Help: (devshell)$ rmtree dirname
         Deletes the directory specified by dirname and all of its contents.
         See rm to delete a single file
         """
@@ -223,7 +223,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_mv(self,args):
         """
-    Help: (doctestify)$ mv source target
+    Help: (devshell)$ mv source target
         Moves the file or folder at source to target
         """
         try:
@@ -234,7 +234,7 @@ class DoctestifyCmd(Cmd,object):
         shutil.move(src,dst)
     def do_cp(self,args):
         """
-    Help: (doctestify)$ cp source target
+    Help: (devshell)$ cp source target
         Copies the file or folder at source to target
         """
         try:
@@ -250,7 +250,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_run(self,args):
         """
-    Help: (doctestify)$ run shellcmd [args...]
+    Help: (devshell)$ run shellcmd [args...]
         Runs the given command in a subshell
         """
         os.system(args)
@@ -259,13 +259,13 @@ class DoctestifyCmd(Cmd,object):
 
     def do_edit(self,args):
         """
-    Help: (doctestify)$ edit editor
+    Help: (devshell)$ edit editor
         Runs the command editor, passing the file of the currently targeted object in as first argument.
         If no editor is specified, an error message will apppear.
         For most editors (e.g. vim, nano, etc), this will open the file for editing.
         If the current item is package, opens __init__.py.
 
-        For editors that have some other command line invocation, see the doctestify run command.
+        For editors that have some other command line invocation, see the devshell run command.
         """
         editor = args.strip()
         if len(editor) == 0:
@@ -301,7 +301,7 @@ class DoctestifyCmd(Cmd,object):
             print('No target identified')
     def do_editvim(self,args):
         """
-    Help: (doctestify)$ editvim
+    Help: (devshell)$ editvim
         Opens vim to the first source line of the given target
         If on windows, opens gvim instead.
         """
@@ -344,7 +344,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_debug(self,args):
         """
-    Help: (doctestify)$ debug(arg1,arg2,...,kwarg1=kwvalue1,kwarg2=kwvalue2,...)
+    Help: (devshell)$ debug(arg1,arg2,...,kwarg1=kwvalue1,kwarg2=kwvalue2,...)
         If currently targeting a class or function, this will attempt to load and call that code with the provided positional args and keyword args - entering pdb debug mode on the first line. 
         If currently targeting a package or module, this will enter debug mode at the first line of the module as if the module's file were directly run with python -m pdb <filename>.
        """
@@ -384,7 +384,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_listdir(self,args):
         """
-    Help: (doctestify)$ listdir path
+    Help: (devshell)$ listdir path
         This lists the files/subfolders within the provided operating system folder path
         If path is not provided, then files/subfolders within the operating system folder path (current working directory) will be listed
         """
@@ -410,8 +410,8 @@ class DoctestifyCmd(Cmd,object):
 
     def do_chdir(self,args):
         """
-    Help: (doctestify)$ chdir path
-        This changes the operating system folder path (current working directory) where doctestify will look for packages and modules
+    Help: (devshell)$ chdir path
+        This changes the operating system folder path (current working directory) where devshell will look for packages and modules
         """
         if os.path.exists(args) and os.path.isdir(args):
             os.chdir(args)
@@ -423,7 +423,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_doctestify(self,args):
         """
-    Help: (doctestify)$ doctestify
+    Help: (devshell)$ doctestify
         Performs doctestify on the currently targeted item.
         This will cause an interactive python recording session to begin with all items from the targeted item's module imported in automatically.
         All inputs and outputs will be recorded and entered into the targeted item's docstring as a doctest.
@@ -436,33 +436,33 @@ class DoctestifyCmd(Cmd,object):
 
     def do_quit(self,args):
         """
-    Help: (doctestify)$ quit
-        Exit the doctestify shell.
+    Help: (devshell)$ quit
+        Exit the devshell shell.
         """
-        print('Exiting doctestify shell...')
+        print('Exiting devshell shell...')
         return True
     def do_exit(self,args):
         """
-    Help:(doctestify)$ exit
-        Exit the doctestify shell.
+    Help:(devshell)$ exit
+        Exit the devshell shell.
         """
         return self.do_quit(args)
     def do_q(self,args):
         """
-    Help:(doctestify)$ q 
-        Exit the doctestify shell.
+    Help:(devshell)$ q 
+        Exit the devshell shell.
         """
         return self.do_quit(args)
     def do_EOF(self,args):
         """
     Help: EOF
-        Pressing Ctrl+D while in the doctestify shell will result in exiting the doctestify shell.
-        Note that Ctrl+D is also used to terminate an interactive recording session and return to the doctestify shell.
+        Pressing Ctrl+D while in the devshell shell will result in exiting the devshell shell.
+        Note that Ctrl+D is also used to terminate an interactive recording session and return to the devshell shell.
         """
         return self.do_quit(args)
     def do_doctest(self,args):
         """
-    Help: (doctestify)$ doctest [verbose]
+    Help: (devshell)$ doctest [verbose]
         This runs the current doctests for the currently targeted item. verbose can be True or False. If unspecified, verbose=False.
         """
         if len(self.pwd) == 0:
@@ -510,7 +510,7 @@ class DoctestifyCmd(Cmd,object):
             print('No target identified')
     def do_pytest(self,args):
         """
-    Help: (doctestify)$ pytest [pytest_args]
+    Help: (devshell)$ pytest [pytest_args]
         This runs the pytest against the currently targeted item. 
         If pytest is not installed, an error message will be printed.
 
@@ -521,13 +521,13 @@ class DoctestifyCmd(Cmd,object):
             See --pdb, --trace, --capture
 
         If there is no currently targeted item, pytest will be run against the folder indicated by getcwd:
-            (doctestify)$ pytest -ra --doctest-modules
+            (devshell)$ pytest -ra --doctest-modules
                 is equivalent to:
                     python -m pytest . -ra --doctest-modules
 
         If there is a target item, pytest will be run specifically against that item.
             For example, if the currently target object is mypackage.my_module.MyClass.my_test_method, then running 
-            (doctestify)$ pytest -ra
+            (devshell)$ pytest -ra
                 is equivalent to:
                     python -m pytest  /fullpathto/mypackage/my_module.py::MyClass::my_test_method --doctest-modules -ra
         """
@@ -572,7 +572,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_coverage(self,args):
         """
-    Help: (doctestify)$ coverage [pytest_args]
+    Help: (devshell)$ coverage [pytest_args]
         This runs coverage and pytest against the source file containing the currently targeted item. 
         This does not use the pytest-cov plugin, just the coverage and pytest packages themselves.
         If pytest and/or coverage are not installed, an error message will be printed.
@@ -584,14 +584,14 @@ class DoctestifyCmd(Cmd,object):
             See --pdb, --trace, --capture
 
         If there is no currently targeted item, coverage and pytest will be run against the folder indicated by getcwd:
-            (doctestify)$ coverage -ra
+            (devshell)$ coverage -ra
                 is functionally equivalent to:
                     python -m coverage run --parallel-mode --source=. pytest . -ra --doctest-modules
                     python -m coverage report -m
 
         If there is a target item, coverage and pytest will be run specifically against the entire source file containing that item.
             For example, if the currently target object is mypackage.my_module.MyClass.my_test_method, then running 
-            (doctestify)$ coverage -ra
+            (devshell)$ coverage -ra
                 is functionally equivalent to:
                     python -m coverage run --parallel-mode --source=/fullpathto/mypackage --include=my_module.py pytest  /fullpathto/mypackage/my_module.py -ra --doctest-modules
                     python -m coverage report -m
@@ -637,7 +637,7 @@ class DoctestifyCmd(Cmd,object):
             run_coverage(self.cwd,arglist)
     def do_source(self,args):
         """
-    Help: (doctestify)$ source
+    Help: (devshell)$ source
         This displays the file name and source code for the currently targeted item.
         """
         target_fqn = '.'.join(item[0] for item in self.pwd)
@@ -673,7 +673,7 @@ class DoctestifyCmd(Cmd,object):
             print('No target identified')
     def do_grep(self,args):
         """
-    Help: (doctestify)$ grep pattern [OPTIONS]
+    Help: (devshell)$ grep pattern [OPTIONS]
         Searches the source code of the currently targeted item based on the provided regular expression.
         The source is split into lines and the regular expression is applied to each line.
         Files are opened for reading in string mode with errors being handled via open()'s errors='backslashreplace' option
@@ -725,7 +725,7 @@ class DoctestifyCmd(Cmd,object):
 
     def do_doc(self,args):
         """
-    Help: (doctestify)$ doc
+    Help: (devshell)$ doc
         This displays the docstring for the currently targeted item.
         """
         target_fqn = '.'.join(item[0] for item in self.pwd)
@@ -759,13 +759,13 @@ class DoctestifyCmd(Cmd,object):
 
     def do_getcwd(self,args):
         """
-    Help: (doctestify)$ getcwd
-        This displays the operating system folder path (current working directory) where doctestify will look for packages and modules
+    Help: (devshell)$ getcwd
+        This displays the operating system folder path (current working directory) where devshell will look for packages and modules
         """
         print(self.cwd)
     def do_ls(self,args):
         """
-    Help: (doctestify)$ ls [python_object]
+    Help: (devshell)$ ls [python_object]
         This will show all items contained within the currently targeted item.
             e.g. for a package, this would list the modules
             e.g. for a module, this would list the functions and classes
@@ -800,7 +800,7 @@ class DoctestifyCmd(Cmd,object):
             return '/','root'
     def do_pwd(self,args):
         """
-    Help: (doctestify)$ pwd
+    Help: (devshell)$ pwd
         This shows the fully qualified name of the currently targeted item.
 
         This is NOT the same as the usual interpretation of pwd in other shells.
@@ -857,21 +857,21 @@ class DoctestifyCmd(Cmd,object):
         return (resolved,clear_ls_cache)
     def do_interactive(self,args):
         """
-    Help: (doctestify)$ interactive
+    Help: (devshell)$ interactive
         Opens a python interactive session
         """
         console = code.InteractiveConsole()
         console.interact()
     def do_python(self,args):
         """
-    Help: (doctestify)$ python
+    Help: (devshell)$ python
         Opens a python interactive session
         """
         self.do_interactive(args)
 
     def do_cd(self,args):
         """
-    Help: (doctestify)$ cd <argument>
+    Help: (devshell)$ cd <argument>
         This changes the currently targeted item.
         
         <argument> can be part of a fully qualified name to append to the end of the current target.
@@ -884,13 +884,13 @@ class DoctestifyCmd(Cmd,object):
 
         The following are special invocations:
 
-            (doctestify)$ cd /
+            (devshell)$ cd /
                 This will remove all parts of the current fully qualified name
 
-            (doctestify)$ cd .
+            (devshell)$ cd .
                 This has no effect
 
-            (doctestify)$ cd ..
+            (devshell)$ cd ..
                 This removes the last piece of the currently fully qualified name (navigates up to the parent item)
                 If leaving a package to a subfolder named "src", will also change the current working directory to be the parent directory of "src" if a package with the current target as its name exists only in the "src" directory and not in the parent directory.
 
@@ -902,7 +902,7 @@ class DoctestifyCmd(Cmd,object):
         if not resolved is True:
             print('Error - "%s" does not exist' % args)
         #else:
-        #    self.prompt = '(doctestify)%s$ ' % self._pwd()
+        #    self.prompt = '(devshell)%s$ ' % self._pwd()
         if clear_ls_cache:
             self._ls_cache = None
     def complete_cd(self,text,line,begin_idx,end_idx):

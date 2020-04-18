@@ -1,6 +1,6 @@
-# doctestify
+# devshell
 
-doctestify is a tool to make it easier to make doctests.
+devshell is a tool to make python development easier.
 
 ## Key Features
 1. Enables entering an interactive session tied to the docstring of a particular python object. Inputs and responses are automatically recorded and inserted into the docstring as doctests.
@@ -17,29 +17,29 @@ Doctests can be embedded in the docstrings within your code in order to serve tw
 
 A docstring is a block of inline text within your code at the start of a module, class, or function to document the function. When the builtin help() function is called on an object, the docstrings for that object's class and methods are displayed. Additionally there are a number of tools, such as sphinx or pdoc that generate polished documentation files by scanning docstrings within a project.
 
-## How to use doctestify
+## How to use devshell
 First open a shell or command line window and navigate to the folder containing the packages and/or modules of interest.
 Then run:
 
     ```
-    $ python -m doctestify
+    $ python -m devshell
 
-    Starting doctestify command line interface...
-    Welcome to the doctestify shell. Type help or ? to list commands.
+    Starting devshell command line interface...
+    Welcome to the devshell shell. Type help or ? to list commands.
 
-    (doctestify)$
+    (devshell)$
     ```
 
-You will then enter the doctestify shell, which was designed to look and feel very similar to a unix shell.
-The big difference is that instead of navigating through actual files/directories, the doctestify shell navigates through python packages, modules, classes, and functions. Tab-completion is supported.
+You will then enter the devshell shell, which was designed to look and feel very similar to a unix shell.
+The big difference is that instead of navigating through actual files/directories, the devshell shell navigates through python packages, modules, classes, and functions. Tab-completion is supported.
 
 In the shell, you can type help to list all the commands.
 
     ```
-    (doctestify)$ help
+    (devshell)$ help
     Documented commands (type help <topic>):
     ========================================
-    EOF       cp       doctestify  h            ls     pwd     quit    run   
+    EOF       cp       devshell  h            ls     pwd     quit    run   
     cd        debug    edit        help         mkdir  pytest  read    source
     chdir     doc      exit        interactive  mv     python  rm    
     coverage  doctest  getcwd      listdir      pip    q       rmtree
@@ -48,9 +48,9 @@ In the shell, you can type help to list all the commands.
 You can also type help followed by a command to get information about that particular command:
 
     ```
-    (doctestify)$ help ls
+    (devshell)$ help ls
 
-        Help: (doctestify)$ ls
+        Help: (devshell)$ ls
             This will show all items contained within the currently targeted item.
                 e.g. for a package, this would list the modules
                 e.g. for a module, this would list the functions and classes
@@ -62,27 +62,27 @@ You can also type help followed by a command to get information about that parti
 Use the pwd, cd, and ls commands to navigate through different items:
 
     ```
-    doctestify)$ ls
-        doctestify          package             directory
+    devshell)$ ls
+        devshell          package             directory
         test_pkg            package             directory
         tests               package             directory
-    (doctestify)$ cd test_pkg
-    (doctestify)$ cd test_subpkg.test_mod.f
-    (doctestify)$ pwd
+    (devshell)$ cd test_pkg
+    (devshell)$ cd test_subpkg.test_mod.f
+    (devshell)$ pwd
     /test_pkg.test_subpkg.test_mod.f
     ```
 
-Once you are navigated to the item of interest, run the doctestify command to enter a recorded interactive python session. All items from the containing module of the targeted item will automatically be imported. You essentially just type the doctest inputs, and the interactive session will evaluate them and display the outputs. When done, press Ctrl+D to exit the interactive session. At this point, doctestify will write the recorded actions into the docstring of the targeted object. Afterwards, it will run doctests on that object to ensure there are no issues. If any issues are encountered, the original file will be restored and the problematic file will be saved with a special suffix in the same folder.
+Once you are navigated to the item of interest, run the devshell command to enter a recorded interactive python session. All items from the containing module of the targeted item will automatically be imported. You essentially just type the doctest inputs, and the interactive session will evaluate them and display the outputs. When done, press Ctrl+D to exit the interactive session. At this point, devshell will write the recorded actions into the docstring of the targeted object. Afterwards, it will run doctests on that object to ensure there are no issues. If any issues are encountered, the original file will be restored and the problematic file will be saved with a special suffix in the same folder.
 
     ```
-    (doctestify)$ doctestify
+    (devshell)$ devshell
     Testing doctest execution of original file
     ...done: Fail count = 0, Total count = 0
     Entering interactive console
-    Doctest insertion targeting object test_pkg.test_subpkg.test_mod.f within /home/mtm/interspace/doctestify/test_pkg/test_subpkg/test_mod.py
+    Doctest insertion targeting object test_pkg.test_subpkg.test_mod.f within /home/mtm/interspace/devshell/test_pkg/test_subpkg/test_mod.py
     Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
     To abort this session without writing anything into the targeted file, call the exit() function
-    >>> from test_pkg.test_subpkg.test_mod import * # automatic import by doctestify
+    >>> from test_pkg.test_subpkg.test_mod import * # automatic import by devshell
     >>> f(20)
     20
     >>>
@@ -96,12 +96,12 @@ Once you are navigated to the item of interest, run the doctestify command to en
 You can use the doc or source commands to verify the doctest was written in:
 
     ```
-    (doctestify)$ doc
+    (devshell)$ doc
     >>> f(20)
     20
 
-    (doctestify)$ source
-    File: /home/mtm/interspace/doctestify/test_pkg/test_subpkg/test_mod.py
+    (devshell)$ source
+    File: /home/mtm/interspace/devshell/test_pkg/test_subpkg/test_mod.py
     def f(x):
     """
     >>> f(20)
@@ -111,7 +111,7 @@ You can use the doc or source commands to verify the doctest was written in:
 
     ```
 
-You can also change the current working directory that the doctestify shell is scanning for modules and packages with.
+You can also change the current working directory that the devshell shell is scanning for modules and packages with.
 You can navigate the filestystem using chdir, listdir, and getcwd, which do the same things as the standard python os module methods of the same name.
 Tab-completion is supported for chdir and listdir.
 
