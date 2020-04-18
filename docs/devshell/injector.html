@@ -1,0 +1,712 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.1" />
+<title>devshell.injector API documentation</title>
+<meta name="description" content="" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>devshell.injector</code></h1>
+</header>
+<section id="section-intro">
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">import inspect, ast, re, sys, code, readline, importlib, os, doctest, os.path
+from io import StringIO
+try:
+    from importlib import reload
+except:
+    pass
+try:
+    input = raw_input
+except NameError:
+    pass
+
+    
+def get_target(target_fqn):
+    &#34;&#34;&#34;
+    This function returns the target object, module object, and the module&#39;s fully qualified name based on the provided fully qualified target name.
+    &#34;&#34;&#34;
+    module_fqn = target_fqn.split(&#39;.&#39;)
+    while True:
+        try:
+            module = __import__(&#39;.&#39;.join(module_fqn))
+            break
+        except ImportError:
+            module_fqn.pop()
+            if len(module_fqn) == 0:
+                raise Exception(&#39;Could not resolve target: %s&#39; % repr(target_fqn))
+    pieces = target_fqn.split(&#39;.&#39;)
+    obj = module
+    for item in pieces[1:]:
+        obj = getattr(obj,item)
+    return obj,module,&#39;.&#39;.join(module_fqn)
+get_target.__annotations__ = {&#39;target_fqn&#39;:&#39;fully qualified name of target&#39;,&#39;return&#39;:(&#39;target object&#39;,&#39;top-level target module&#39;,&#39;fully qualified name of module&#39;)}
+
+class _ModStdout(object):
+    def __init__(self,iobuf):
+        self.iobuf = iobuf
+    def flush(self):
+        sys.__stdout__.flush()
+    def writelines(self,lines):
+        self.iobuf.extend(data)
+        sys.__stdout__.writelines(lines)
+    def write(self,data):
+        self.iobuf.append(data)
+        sys.__stdout__.write(data)
+class _ModStderr(object):
+    def __init__(self,iobuf):
+        self.iobuf = iobuf
+    def flush(self):
+        sys.__stderr__.flush()
+    def writelines(self,lines):
+        self.iobuf.extend(data)
+        sys.__stderr__.writelines(lines)
+    def write(self,data):
+        self.iobuf.append(data)
+        sys.__stderr__.write(data)
+
+def get_ast_obj(target_fqn,obj=None,module=None,module_fqn=None):
+    &#34;&#34;&#34;
+    This function returns the ast object of the targeted python object
+    &#34;&#34;&#34;
+    if obj is None or module is None or module_fqn is None:
+        obj,module,module_fqn = get_target(target_fqn)
+    importlib.reload(module)
+    if inspect.ismodule(obj):
+        importlib.reload(sys.modules[obj.__name__])
+    else:
+        importlib.reload(sys.modules[obj.__module__])
+    filepath = os.path.abspath(inspect.getsourcefile(obj))
+    if not filepath.startswith(os.getcwd()):
+        raise Exception(&#39;Referenced file is not in the current working directory or any subfolders - this is to protect you from modifying system or site-package code: %s&#39; % repr(filepath))
+    filepath
+    pieces = target_fqn.split(&#39;.&#39;)
+    with open(filepath,&#39;r&#39;) as f:
+        src_lines = f.readlines()
+    source = &#39;&#39;.join(src_lines)
+    tree = ast.parse(source)
+    if inspect.ismodule(obj):
+        ast_obj = tree
+    elif inspect.isclass(obj):
+        ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.ClassDef) and node.name == pieces[-1]][0]
+    elif inspect.isfunction(obj):
+        ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.FunctionDef) and node.name == pieces[-1]][0]
+
+    return ast_obj, filepath,source
+
+class DoctestInjector(object):
+    &#34;&#34;&#34;
+    This class loads a target object by its fully qualified name and parses its source code to determine how to insert docstring lines for that object.
+    &#34;&#34;&#34;
+    def __init__(self,target_fqn):
+        self.target_fqn = target_fqn
+        obj,module,module_fqn = get_target(target_fqn)
+        self.obj = obj
+        self.module=module
+        self.module_fqn = module_fqn
+        ast_obj,self.filepath,self.original_source = get_ast_obj(target_fqn,obj,module,module_fqn)
+
+        if isinstance(ast_obj.body[0],ast.Expr) and isinstance(ast_obj.body[0].value,ast.Str):
+            #docstring already exists
+            ast_doc = ast_obj.body[0]
+
+            if hasattr(ast_doc,&#39;end_lineno&#39;):
+                #python 3.8+
+                line_index = ast_doc.end_lineno-1 #last line of docstring (line containing the ending quotes)
+            else:
+                #python 3.7-
+                line_index = ast_doc.lineno-1 #last line of docstring (line containing the ending quotes)
+            byte_index = ast_doc.col_offset
+            indentation = re.search(&#39;^\\s*&#39;,src_lines[line_index]).group(0) #use docstring end line to determine indentation
+            newline = re.search(&#39;[\r\n]+$&#39;,src_lines[line_index]).group(0) #use docstring end line to determine newline
+            top = src_lines[:line_index+1] #include entire docstring including end line 
+            bottom = src_lines[line_index+1:] #everything else
+            ending = &#39;&#34;&#34;&#34;&#39;+top[-1].split(&#39;&#34;&#34;&#34;&#39;)[-1] #get the trailing quotes and characters after doctsring
+            top[-1] = top[-1][len(indentation):-len(ending)]+newline #remove trailing from top
+            bottom.insert(0,indentation+ending) #add trailing to bottom
+        else:
+            if len(ast_obj.body) == 1 and ast_obj.lineno == ast_obj.body[0].lineno:
+                #docstring does not exist for a single-line function
+                line_index = ast_obj.lineno-1 #line of function
+                indentation = re.search(&#39;^\\s*&#39;,src_lines[line_index]).group(0).strip(&#39;\r\n&#39;)+&#39;    &#39; #use indentation of function plus four spaces
+                newline = re.search(&#39;[\r\n]+$&#39;,src_lines[line_index]).group(0) #use newline of function line
+                top = src_lines[:line_index+1] #include funtion
+                bottom = src_lines[ast_obj.lineno:] #everything after function
+                ast_first = ast_obj.body[0] #first (and only) element in body
+                byte_index = ast_first.col_offset #starting position of first element
+                first_element = top[-1][byte_index:] #first element text content
+                top[-1] = top[-1][:byte_index]+newline #remove first element text content from top
+                bottom.insert(0,indentation+first_element) #add first element text content to bottom
+                top.append(indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add docstring starting quotes
+                bottom.insert(0,indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add docstring ending quotes
+            else:
+                #docstring does not exist for a multi-line function
+                ast_first = ast_obj.body[0]
+                line_index = ast_first.lineno-1 #line number of first element in body of definition
+                byte_index = ast_first.col_offset
+                indentation = re.search(&#39;^\\s*&#39;,src_lines[line_index]).group(0) #use first element line to determine indentation
+                newline = re.search(&#39;[\r\n]+$&#39;,src_lines[line_index]).group(0) #use first element line to determine newline
+                top = src_lines[:line_index] #everything up to but not including first element
+                top.append(indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add new docstring starting quotes
+                bottom = src_lines[ast_obj.body[0].lineno-1:] #first element and everything after
+                bottom.insert(0,indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add docstring ending quotes
+        self.top = top
+        self.bottom = bottom
+        self.indentation = indentation
+        self.newline = newline
+        self.middle = []
+    __init__.__annotations__ = {&#39;target_fqn&#39;:&#39;fully qualified name of target&#39;,&#39;return&#39;:(&#39;target object&#39;,&#39;target module&#39;,&#39;fully qualified name of module&#39;)}
+    def source(self):
+        &#34;&#34;&#34;
+        This returns the updated source code with new inserted docstrings lines for the target object.
+        &#34;&#34;&#34;
+        indented_middle = []
+        last_line = None
+        for line in self.middle:
+            line = re.sub(self.newline,self.newline+self.indentation,line)
+            if last_line is None: 
+                indented_middle.append(self.indentation+line)
+            else:
+                indented_middle.append(line)
+            last_line = line
+        indented_middle[-1] = indented_middle[-1].rstrip() + self.newline #don&#39;t indent the ending triple quotes
+        return &#39;&#39;.join(self.top+ indented_middle + self.bottom)
+    def doctest_console(self):
+        &#34;&#34;&#34;
+        This function runs doctests on the target file, loads the file, and enters a special interactive mode with inputs/outputs being recorded.
+        When the console is done being used (via Ctrl+D), the recorded inputs/outputs will be inserted into the docstring of the target object.
+        Doctests are then run for the udpated code and if there are no problems, the updated code is written to the file location.
+        If there are problems, the updated code is saved to a file in the same folder as the target file but with the suffix &#34;.failed_doctest_insert&#34;.
+        &#34;&#34;&#34;
+        print(&#39;Testing doctest execution of original file&#39;)
+        oldfailcount,oldtestcount = self.testmod()
+        print(&#39;...done: Fail count = %d, Total count = %d&#39; % (oldfailcount,oldtestcount))
+        print(&#39;Entering interactive console&#39;)
+        banner=&#39;&#39;&#39;Doctest insertion targeting object %s within %s
+Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
+To abort this session without writing anything into the targeted file, call the exit() function
+&gt;&gt;&gt; from %s import * # automatic import by devshell&#39;&#39;&#39; % (self.target_fqn,self.filepath,self.module_fqn)
+        console = code.InteractiveConsole()
+        console.push(&#39;from %s import *&#39; % (self.module_fqn))
+        iobuf = self.middle
+        _modstdout = _ModStdout(iobuf)
+        _modstderr = _ModStderr(iobuf)
+        def mod_input(prompt,iobuf=iobuf,_modstdout=_modstdout,_modstderr=_modstderr,newline=self.newline):
+            sys.stdout = sys.__stdout__ #when input() is happening - need normal stdout for readline (up/down arrowkeys) to work properly
+            sys.stderr = sys.__stderr__
+            s = input(prompt)
+            iobuf.append(prompt+s+newline)
+            sys.stdout = _modstdout
+            sys.stderr = _modstderr
+            return s
+        console.raw_input = mod_input
+        #sys.stdout = _modstdout
+        #sys.stderr = _modstderr
+        console.interact(banner=banner)
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        if len(iobuf) == 0:
+            print(&#39;No lines were written - exiting&#39;)
+        else:
+            print(&#39;Writing doctest lines to file&#39;)
+            updated_source = self.source()
+            with open(self.filepath,&#39;w&#39;) as f:
+                f.write(updated_source)
+            print(&#39;Testing doctest execution of new file&#39;)
+            revert = False
+            try:
+                newfailcount,newtestcount = self.testmod()
+                print(&#39;...done: Fail count = %d (old=%d), Total count = %d (old=%d)&#39; % (newfailcount,oldfailcount,newtestcount,oldtestcount))
+            except:
+                revert = True
+                print(&#39;Failed to load new file - reverting back to original file&#39;)
+            if revert is False and oldfailcount != newfailcount:
+                revert = True
+                print(&#39;Failcounts from before did not match after - reverting back to original file&#39;)
+            if revert:
+                with open(self.filepath,&#39;w&#39;) as f:
+                    f.write(self.original_source)
+                print(&#39;Updated source code with problems located at: %s&#39; % (self.filepath+&#39;.failed_doctest_insert&#39;))
+                with open(self.filepath+&#39;.failed_doctest_insert&#39;,&#39;w&#39;) as f:
+                    f.write(updated_source)
+            else:
+                print(&#39;File successfully updated&#39;)
+    def testmod(self):
+        &#34;&#34;&#34;
+        This runs doctests on the target module and returns the failcount and testcount
+        &#34;&#34;&#34;
+        self.module = module = reload(sys.modules[self.module_fqn])
+        failcount,testcount = doctest.testmod(module)
+        return failcount,testcount
+def set_end_interactive(value=True):
+    &#34;&#34;&#34;
+    Setting value=True will make python go into interactive mode when the script terminates.
+    &#34;&#34;&#34;
+    if value:
+        os.environ[&#39;PYTHONINSPECT&#39;] = &#39;1&#39;
+    else:
+        if &#39;PYTHONINSPECT&#39; in os.environ:
+            del os.environ[&#39;PYTHONINSPECT&#39;]
+def doctestify(target_fqn):
+    &#34;&#34;&#34;
+    Start an interactive recording session for the item identified by the given fully qualified name.
+    Write the recorded results to the target object&#39;s docstring and test that the doctest passes.
+    &#34;&#34;&#34;
+    di = DoctestInjector(target_fqn)
+    di.doctest_console()</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-functions">Functions</h2>
+<dl>
+<dt id="devshell.injector.doctestify"><code class="name flex">
+<span>def <span class="ident">doctestify</span></span>(<span>target_fqn)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Start an interactive recording session for the item identified by the given fully qualified name.
+Write the recorded results to the target object's docstring and test that the doctest passes.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def doctestify(target_fqn):
+    &#34;&#34;&#34;
+    Start an interactive recording session for the item identified by the given fully qualified name.
+    Write the recorded results to the target object&#39;s docstring and test that the doctest passes.
+    &#34;&#34;&#34;
+    di = DoctestInjector(target_fqn)
+    di.doctest_console()</code></pre>
+</details>
+</dd>
+<dt id="devshell.injector.get_ast_obj"><code class="name flex">
+<span>def <span class="ident">get_ast_obj</span></span>(<span>target_fqn, obj=None, module=None, module_fqn=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This function returns the ast object of the targeted python object</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_ast_obj(target_fqn,obj=None,module=None,module_fqn=None):
+    &#34;&#34;&#34;
+    This function returns the ast object of the targeted python object
+    &#34;&#34;&#34;
+    if obj is None or module is None or module_fqn is None:
+        obj,module,module_fqn = get_target(target_fqn)
+    importlib.reload(module)
+    if inspect.ismodule(obj):
+        importlib.reload(sys.modules[obj.__name__])
+    else:
+        importlib.reload(sys.modules[obj.__module__])
+    filepath = os.path.abspath(inspect.getsourcefile(obj))
+    if not filepath.startswith(os.getcwd()):
+        raise Exception(&#39;Referenced file is not in the current working directory or any subfolders - this is to protect you from modifying system or site-package code: %s&#39; % repr(filepath))
+    filepath
+    pieces = target_fqn.split(&#39;.&#39;)
+    with open(filepath,&#39;r&#39;) as f:
+        src_lines = f.readlines()
+    source = &#39;&#39;.join(src_lines)
+    tree = ast.parse(source)
+    if inspect.ismodule(obj):
+        ast_obj = tree
+    elif inspect.isclass(obj):
+        ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.ClassDef) and node.name == pieces[-1]][0]
+    elif inspect.isfunction(obj):
+        ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.FunctionDef) and node.name == pieces[-1]][0]
+
+    return ast_obj, filepath,source</code></pre>
+</details>
+</dd>
+<dt id="devshell.injector.get_target"><code class="name flex">
+<span>def <span class="ident">get_target</span></span>(<span>target_fqn: fully qualified name of target) -> ('target object', 'top-level target module', 'fully qualified name of module')</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This function returns the target object, module object, and the module's fully qualified name based on the provided fully qualified target name.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def get_target(target_fqn):
+    &#34;&#34;&#34;
+    This function returns the target object, module object, and the module&#39;s fully qualified name based on the provided fully qualified target name.
+    &#34;&#34;&#34;
+    module_fqn = target_fqn.split(&#39;.&#39;)
+    while True:
+        try:
+            module = __import__(&#39;.&#39;.join(module_fqn))
+            break
+        except ImportError:
+            module_fqn.pop()
+            if len(module_fqn) == 0:
+                raise Exception(&#39;Could not resolve target: %s&#39; % repr(target_fqn))
+    pieces = target_fqn.split(&#39;.&#39;)
+    obj = module
+    for item in pieces[1:]:
+        obj = getattr(obj,item)
+    return obj,module,&#39;.&#39;.join(module_fqn)</code></pre>
+</details>
+</dd>
+<dt id="devshell.injector.set_end_interactive"><code class="name flex">
+<span>def <span class="ident">set_end_interactive</span></span>(<span>value=True)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Setting value=True will make python go into interactive mode when the script terminates.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def set_end_interactive(value=True):
+    &#34;&#34;&#34;
+    Setting value=True will make python go into interactive mode when the script terminates.
+    &#34;&#34;&#34;
+    if value:
+        os.environ[&#39;PYTHONINSPECT&#39;] = &#39;1&#39;
+    else:
+        if &#39;PYTHONINSPECT&#39; in os.environ:
+            del os.environ[&#39;PYTHONINSPECT&#39;]</code></pre>
+</details>
+</dd>
+</dl>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="devshell.injector.DoctestInjector"><code class="flex name class">
+<span>class <span class="ident">DoctestInjector</span></span>
+<span>(</span><span>target_fqn: fully qualified name of target)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This class loads a target object by its fully qualified name and parses its source code to determine how to insert docstring lines for that object.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class DoctestInjector(object):
+    &#34;&#34;&#34;
+    This class loads a target object by its fully qualified name and parses its source code to determine how to insert docstring lines for that object.
+    &#34;&#34;&#34;
+    def __init__(self,target_fqn):
+        self.target_fqn = target_fqn
+        obj,module,module_fqn = get_target(target_fqn)
+        self.obj = obj
+        self.module=module
+        self.module_fqn = module_fqn
+        ast_obj,self.filepath,self.original_source = get_ast_obj(target_fqn,obj,module,module_fqn)
+
+        if isinstance(ast_obj.body[0],ast.Expr) and isinstance(ast_obj.body[0].value,ast.Str):
+            #docstring already exists
+            ast_doc = ast_obj.body[0]
+
+            if hasattr(ast_doc,&#39;end_lineno&#39;):
+                #python 3.8+
+                line_index = ast_doc.end_lineno-1 #last line of docstring (line containing the ending quotes)
+            else:
+                #python 3.7-
+                line_index = ast_doc.lineno-1 #last line of docstring (line containing the ending quotes)
+            byte_index = ast_doc.col_offset
+            indentation = re.search(&#39;^\\s*&#39;,src_lines[line_index]).group(0) #use docstring end line to determine indentation
+            newline = re.search(&#39;[\r\n]+$&#39;,src_lines[line_index]).group(0) #use docstring end line to determine newline
+            top = src_lines[:line_index+1] #include entire docstring including end line 
+            bottom = src_lines[line_index+1:] #everything else
+            ending = &#39;&#34;&#34;&#34;&#39;+top[-1].split(&#39;&#34;&#34;&#34;&#39;)[-1] #get the trailing quotes and characters after doctsring
+            top[-1] = top[-1][len(indentation):-len(ending)]+newline #remove trailing from top
+            bottom.insert(0,indentation+ending) #add trailing to bottom
+        else:
+            if len(ast_obj.body) == 1 and ast_obj.lineno == ast_obj.body[0].lineno:
+                #docstring does not exist for a single-line function
+                line_index = ast_obj.lineno-1 #line of function
+                indentation = re.search(&#39;^\\s*&#39;,src_lines[line_index]).group(0).strip(&#39;\r\n&#39;)+&#39;    &#39; #use indentation of function plus four spaces
+                newline = re.search(&#39;[\r\n]+$&#39;,src_lines[line_index]).group(0) #use newline of function line
+                top = src_lines[:line_index+1] #include funtion
+                bottom = src_lines[ast_obj.lineno:] #everything after function
+                ast_first = ast_obj.body[0] #first (and only) element in body
+                byte_index = ast_first.col_offset #starting position of first element
+                first_element = top[-1][byte_index:] #first element text content
+                top[-1] = top[-1][:byte_index]+newline #remove first element text content from top
+                bottom.insert(0,indentation+first_element) #add first element text content to bottom
+                top.append(indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add docstring starting quotes
+                bottom.insert(0,indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add docstring ending quotes
+            else:
+                #docstring does not exist for a multi-line function
+                ast_first = ast_obj.body[0]
+                line_index = ast_first.lineno-1 #line number of first element in body of definition
+                byte_index = ast_first.col_offset
+                indentation = re.search(&#39;^\\s*&#39;,src_lines[line_index]).group(0) #use first element line to determine indentation
+                newline = re.search(&#39;[\r\n]+$&#39;,src_lines[line_index]).group(0) #use first element line to determine newline
+                top = src_lines[:line_index] #everything up to but not including first element
+                top.append(indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add new docstring starting quotes
+                bottom = src_lines[ast_obj.body[0].lineno-1:] #first element and everything after
+                bottom.insert(0,indentation+&#39;&#34;&#34;&#34;&#39;+newline) #add docstring ending quotes
+        self.top = top
+        self.bottom = bottom
+        self.indentation = indentation
+        self.newline = newline
+        self.middle = []
+    __init__.__annotations__ = {&#39;target_fqn&#39;:&#39;fully qualified name of target&#39;,&#39;return&#39;:(&#39;target object&#39;,&#39;target module&#39;,&#39;fully qualified name of module&#39;)}
+    def source(self):
+        &#34;&#34;&#34;
+        This returns the updated source code with new inserted docstrings lines for the target object.
+        &#34;&#34;&#34;
+        indented_middle = []
+        last_line = None
+        for line in self.middle:
+            line = re.sub(self.newline,self.newline+self.indentation,line)
+            if last_line is None: 
+                indented_middle.append(self.indentation+line)
+            else:
+                indented_middle.append(line)
+            last_line = line
+        indented_middle[-1] = indented_middle[-1].rstrip() + self.newline #don&#39;t indent the ending triple quotes
+        return &#39;&#39;.join(self.top+ indented_middle + self.bottom)
+    def doctest_console(self):
+        &#34;&#34;&#34;
+        This function runs doctests on the target file, loads the file, and enters a special interactive mode with inputs/outputs being recorded.
+        When the console is done being used (via Ctrl+D), the recorded inputs/outputs will be inserted into the docstring of the target object.
+        Doctests are then run for the udpated code and if there are no problems, the updated code is written to the file location.
+        If there are problems, the updated code is saved to a file in the same folder as the target file but with the suffix &#34;.failed_doctest_insert&#34;.
+        &#34;&#34;&#34;
+        print(&#39;Testing doctest execution of original file&#39;)
+        oldfailcount,oldtestcount = self.testmod()
+        print(&#39;...done: Fail count = %d, Total count = %d&#39; % (oldfailcount,oldtestcount))
+        print(&#39;Entering interactive console&#39;)
+        banner=&#39;&#39;&#39;Doctest insertion targeting object %s within %s
+Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
+To abort this session without writing anything into the targeted file, call the exit() function
+&gt;&gt;&gt; from %s import * # automatic import by devshell&#39;&#39;&#39; % (self.target_fqn,self.filepath,self.module_fqn)
+        console = code.InteractiveConsole()
+        console.push(&#39;from %s import *&#39; % (self.module_fqn))
+        iobuf = self.middle
+        _modstdout = _ModStdout(iobuf)
+        _modstderr = _ModStderr(iobuf)
+        def mod_input(prompt,iobuf=iobuf,_modstdout=_modstdout,_modstderr=_modstderr,newline=self.newline):
+            sys.stdout = sys.__stdout__ #when input() is happening - need normal stdout for readline (up/down arrowkeys) to work properly
+            sys.stderr = sys.__stderr__
+            s = input(prompt)
+            iobuf.append(prompt+s+newline)
+            sys.stdout = _modstdout
+            sys.stderr = _modstderr
+            return s
+        console.raw_input = mod_input
+        #sys.stdout = _modstdout
+        #sys.stderr = _modstderr
+        console.interact(banner=banner)
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        if len(iobuf) == 0:
+            print(&#39;No lines were written - exiting&#39;)
+        else:
+            print(&#39;Writing doctest lines to file&#39;)
+            updated_source = self.source()
+            with open(self.filepath,&#39;w&#39;) as f:
+                f.write(updated_source)
+            print(&#39;Testing doctest execution of new file&#39;)
+            revert = False
+            try:
+                newfailcount,newtestcount = self.testmod()
+                print(&#39;...done: Fail count = %d (old=%d), Total count = %d (old=%d)&#39; % (newfailcount,oldfailcount,newtestcount,oldtestcount))
+            except:
+                revert = True
+                print(&#39;Failed to load new file - reverting back to original file&#39;)
+            if revert is False and oldfailcount != newfailcount:
+                revert = True
+                print(&#39;Failcounts from before did not match after - reverting back to original file&#39;)
+            if revert:
+                with open(self.filepath,&#39;w&#39;) as f:
+                    f.write(self.original_source)
+                print(&#39;Updated source code with problems located at: %s&#39; % (self.filepath+&#39;.failed_doctest_insert&#39;))
+                with open(self.filepath+&#39;.failed_doctest_insert&#39;,&#39;w&#39;) as f:
+                    f.write(updated_source)
+            else:
+                print(&#39;File successfully updated&#39;)
+    def testmod(self):
+        &#34;&#34;&#34;
+        This runs doctests on the target module and returns the failcount and testcount
+        &#34;&#34;&#34;
+        self.module = module = reload(sys.modules[self.module_fqn])
+        failcount,testcount = doctest.testmod(module)
+        return failcount,testcount</code></pre>
+</details>
+<h3>Methods</h3>
+<dl>
+<dt id="devshell.injector.DoctestInjector.doctest_console"><code class="name flex">
+<span>def <span class="ident">doctest_console</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This function runs doctests on the target file, loads the file, and enters a special interactive mode with inputs/outputs being recorded.
+When the console is done being used (via Ctrl+D), the recorded inputs/outputs will be inserted into the docstring of the target object.
+Doctests are then run for the udpated code and if there are no problems, the updated code is written to the file location.
+If there are problems, the updated code is saved to a file in the same folder as the target file but with the suffix ".failed_doctest_insert".</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">    def doctest_console(self):
+        &#34;&#34;&#34;
+        This function runs doctests on the target file, loads the file, and enters a special interactive mode with inputs/outputs being recorded.
+        When the console is done being used (via Ctrl+D), the recorded inputs/outputs will be inserted into the docstring of the target object.
+        Doctests are then run for the udpated code and if there are no problems, the updated code is written to the file location.
+        If there are problems, the updated code is saved to a file in the same folder as the target file but with the suffix &#34;.failed_doctest_insert&#34;.
+        &#34;&#34;&#34;
+        print(&#39;Testing doctest execution of original file&#39;)
+        oldfailcount,oldtestcount = self.testmod()
+        print(&#39;...done: Fail count = %d, Total count = %d&#39; % (oldfailcount,oldtestcount))
+        print(&#39;Entering interactive console&#39;)
+        banner=&#39;&#39;&#39;Doctest insertion targeting object %s within %s
+Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
+To abort this session without writing anything into the targeted file, call the exit() function
+&gt;&gt;&gt; from %s import * # automatic import by devshell&#39;&#39;&#39; % (self.target_fqn,self.filepath,self.module_fqn)
+        console = code.InteractiveConsole()
+        console.push(&#39;from %s import *&#39; % (self.module_fqn))
+        iobuf = self.middle
+        _modstdout = _ModStdout(iobuf)
+        _modstderr = _ModStderr(iobuf)
+        def mod_input(prompt,iobuf=iobuf,_modstdout=_modstdout,_modstderr=_modstderr,newline=self.newline):
+            sys.stdout = sys.__stdout__ #when input() is happening - need normal stdout for readline (up/down arrowkeys) to work properly
+            sys.stderr = sys.__stderr__
+            s = input(prompt)
+            iobuf.append(prompt+s+newline)
+            sys.stdout = _modstdout
+            sys.stderr = _modstderr
+            return s
+        console.raw_input = mod_input
+        #sys.stdout = _modstdout
+        #sys.stderr = _modstderr
+        console.interact(banner=banner)
+        sys.stdout = sys.__stdout__
+        sys.stderr = sys.__stderr__
+        if len(iobuf) == 0:
+            print(&#39;No lines were written - exiting&#39;)
+        else:
+            print(&#39;Writing doctest lines to file&#39;)
+            updated_source = self.source()
+            with open(self.filepath,&#39;w&#39;) as f:
+                f.write(updated_source)
+            print(&#39;Testing doctest execution of new file&#39;)
+            revert = False
+            try:
+                newfailcount,newtestcount = self.testmod()
+                print(&#39;...done: Fail count = %d (old=%d), Total count = %d (old=%d)&#39; % (newfailcount,oldfailcount,newtestcount,oldtestcount))
+            except:
+                revert = True
+                print(&#39;Failed to load new file - reverting back to original file&#39;)
+            if revert is False and oldfailcount != newfailcount:
+                revert = True
+                print(&#39;Failcounts from before did not match after - reverting back to original file&#39;)
+            if revert:
+                with open(self.filepath,&#39;w&#39;) as f:
+                    f.write(self.original_source)
+                print(&#39;Updated source code with problems located at: %s&#39; % (self.filepath+&#39;.failed_doctest_insert&#39;))
+                with open(self.filepath+&#39;.failed_doctest_insert&#39;,&#39;w&#39;) as f:
+                    f.write(updated_source)
+            else:
+                print(&#39;File successfully updated&#39;)</code></pre>
+</details>
+</dd>
+<dt id="devshell.injector.DoctestInjector.source"><code class="name flex">
+<span>def <span class="ident">source</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This returns the updated source code with new inserted docstrings lines for the target object.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def source(self):
+    &#34;&#34;&#34;
+    This returns the updated source code with new inserted docstrings lines for the target object.
+    &#34;&#34;&#34;
+    indented_middle = []
+    last_line = None
+    for line in self.middle:
+        line = re.sub(self.newline,self.newline+self.indentation,line)
+        if last_line is None: 
+            indented_middle.append(self.indentation+line)
+        else:
+            indented_middle.append(line)
+        last_line = line
+    indented_middle[-1] = indented_middle[-1].rstrip() + self.newline #don&#39;t indent the ending triple quotes
+    return &#39;&#39;.join(self.top+ indented_middle + self.bottom)</code></pre>
+</details>
+</dd>
+<dt id="devshell.injector.DoctestInjector.testmod"><code class="name flex">
+<span>def <span class="ident">testmod</span></span>(<span>self)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>This runs doctests on the target module and returns the failcount and testcount</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def testmod(self):
+    &#34;&#34;&#34;
+    This runs doctests on the target module and returns the failcount and testcount
+    &#34;&#34;&#34;
+    self.module = module = reload(sys.modules[self.module_fqn])
+    failcount,testcount = doctest.testmod(module)
+    return failcount,testcount</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="devshell" href="index.html">devshell</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-functions">Functions</a></h3>
+<ul class="">
+<li><code><a title="devshell.injector.doctestify" href="#devshell.injector.doctestify">doctestify</a></code></li>
+<li><code><a title="devshell.injector.get_ast_obj" href="#devshell.injector.get_ast_obj">get_ast_obj</a></code></li>
+<li><code><a title="devshell.injector.get_target" href="#devshell.injector.get_target">get_target</a></code></li>
+<li><code><a title="devshell.injector.set_end_interactive" href="#devshell.injector.set_end_interactive">set_end_interactive</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="devshell.injector.DoctestInjector" href="#devshell.injector.DoctestInjector">DoctestInjector</a></code></h4>
+<ul class="">
+<li><code><a title="devshell.injector.DoctestInjector.doctest_console" href="#devshell.injector.DoctestInjector.doctest_console">doctest_console</a></code></li>
+<li><code><a title="devshell.injector.DoctestInjector.source" href="#devshell.injector.DoctestInjector.source">source</a></code></li>
+<li><code><a title="devshell.injector.DoctestInjector.testmod" href="#devshell.injector.DoctestInjector.testmod">testmod</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.1</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

@@ -1,5 +1,7 @@
 # devshell
 
+[View API documentation](http://htmlpreview.github.io/?https://github.com/mmiguel6288code/devshell/blob/master/docs/devshell/index.html)
+
 devshell is a tool to make python development easier.
 
 ## Key Features

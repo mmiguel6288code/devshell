@@ -11,7 +11,7 @@ with open('src/devshell/__init__.py', 'r') as f:
 with open('README.md','r') as f:
     readme = f.read()
 
-REQUIRES = ['pypager','pytest','coverage']
+REQUIRES = ['pypager','pytest','coverage','prompt-toolkit','pdoc3']
 
 setup(
     name='devshell',
@@ -41,4 +41,5 @@ setup(
     install_requires=REQUIRES,
     tests_require=[],
     packages=find_packages('src'),
+    package_dir={'':'src'},
 )

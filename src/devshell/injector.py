@@ -29,6 +29,7 @@ def get_target(target_fqn):
         obj = getattr(obj,item)
     return obj,module,'.'.join(module_fqn)
 get_target.__annotations__ = {'target_fqn':'fully qualified name of target','return':('target object','top-level target module','fully qualified name of module')}
+
 class _ModStdout(object):
     def __init__(self,iobuf):
         self.iobuf = iobuf

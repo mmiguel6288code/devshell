@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, minimum-scale=1" />
+<meta name="generator" content="pdoc 0.8.1" />
+<title>devshell.ptcmd API documentation</title>
+<meta name="description" content="This script takes the Cmd object from the built-in standard library, adds an input_method attribute, and replaces all calls to the standard input() …" />
+<link href='https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.0/normalize.min.css' rel='stylesheet'>
+<link href='https://cdnjs.cloudflare.com/ajax/libs/10up-sanitize.css/8.0.0/sanitize.min.css' rel='stylesheet'>
+<link href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/styles/github.min.css" rel="stylesheet">
+<style>.flex{display:flex !important}body{line-height:1.5em}#content{padding:20px}#sidebar{padding:30px;overflow:hidden}#sidebar > *:last-child{margin-bottom:2cm}.http-server-breadcrumbs{font-size:130%;margin:0 0 15px 0}#footer{font-size:.75em;padding:5px 30px;border-top:1px solid #ddd;text-align:right}#footer p{margin:0 0 0 1em;display:inline-block}#footer p:last-child{margin-right:30px}h1,h2,h3,h4,h5{font-weight:300}h1{font-size:2.5em;line-height:1.1em}h2{font-size:1.75em;margin:1em 0 .50em 0}h3{font-size:1.4em;margin:25px 0 10px 0}h4{margin:0;font-size:105%}a{color:#058;text-decoration:none;transition:color .3s ease-in-out}a:hover{color:#e82}.title code{font-weight:bold}h2[id^="header-"]{margin-top:2em}.ident{color:#900}pre code{background:#f8f8f8;font-size:.8em;line-height:1.4em}code{background:#f2f2f1;padding:1px 4px;overflow-wrap:break-word}h1 code{background:transparent}pre{background:#f8f8f8;border:0;border-top:1px solid #ccc;border-bottom:1px solid #ccc;margin:1em 0;padding:1ex}#http-server-module-list{display:flex;flex-flow:column}#http-server-module-list div{display:flex}#http-server-module-list dt{min-width:10%}#http-server-module-list p{margin-top:0}.toc ul,#index{list-style-type:none;margin:0;padding:0}#index code{background:transparent}#index h3{border-bottom:1px solid #ddd}#index ul{padding:0}#index h4{margin-top:.6em;font-weight:bold}@media (min-width:200ex){#index .two-column{column-count:2}}@media (min-width:300ex){#index .two-column{column-count:3}}dl{margin-bottom:2em}dl dl:last-child{margin-bottom:4em}dd{margin:0 0 1em 3em}#header-classes + dl > dd{margin-bottom:3em}dd dd{margin-left:2em}dd p{margin:10px 0}.name{background:#eee;font-weight:bold;font-size:.85em;padding:5px 10px;display:inline-block;min-width:40%}.name:hover{background:#e0e0e0}.name > span:first-child{white-space:nowrap}.name.class > span:nth-child(2){margin-left:.4em}.inherited{color:#999;border-left:5px solid #eee;padding-left:1em}.inheritance em{font-style:normal;font-weight:bold}.desc h2{font-weight:400;font-size:1.25em}.desc h3{font-size:1em}.desc dt code{background:inherit}.source summary,.git-link-div{color:#666;text-align:right;font-weight:400;font-size:.8em;text-transform:uppercase}.source summary > *{white-space:nowrap;cursor:pointer}.git-link{color:inherit;margin-left:1em}.source pre{max-height:500px;overflow:auto;margin:0}.source pre code{font-size:12px;overflow:visible}.hlist{list-style:none}.hlist li{display:inline}.hlist li:after{content:',\2002'}.hlist li:last-child:after{content:none}.hlist .hlist{display:inline;padding-left:1em}img{max-width:100%}.admonition{padding:.1em .5em;margin-bottom:1em}.admonition-title{font-weight:bold}.admonition.note,.admonition.info,.admonition.important{background:#aef}.admonition.todo,.admonition.versionadded,.admonition.tip,.admonition.hint{background:#dfd}.admonition.warning,.admonition.versionchanged,.admonition.deprecated{background:#fd4}.admonition.error,.admonition.danger,.admonition.caution{background:lightpink}</style>
+<style media="screen and (min-width: 700px)">@media screen and (min-width:700px){#sidebar{width:30%;height:100vh;overflow:auto;position:sticky;top:0}#content{width:70%;max-width:100ch;padding:3em 4em;border-left:1px solid #ddd}pre code{font-size:1em}.item .name{font-size:1em}main{display:flex;flex-direction:row-reverse;justify-content:flex-end}.toc ul ul,#index ul{padding-left:1.5em}.toc > ul > li{margin-top:.5em}}</style>
+<style media="print">@media print{#sidebar h1{page-break-before:always}.source{display:none}}@media print{*{background:transparent !important;color:#000 !important;box-shadow:none !important;text-shadow:none !important}a[href]:after{content:" (" attr(href) ")";font-size:90%}a[href][title]:after{content:none}abbr[title]:after{content:" (" attr(title) ")"}.ir a:after,a[href^="javascript:"]:after,a[href^="#"]:after{content:""}pre,blockquote{border:1px solid #999;page-break-inside:avoid}thead{display:table-header-group}tr,img{page-break-inside:avoid}img{max-width:100% !important}@page{margin:0.5cm}p,h2,h3{orphans:3;widows:3}h1,h2,h3,h4,h5,h6{page-break-after:avoid}}</style>
+</head>
+<body>
+<main>
+<article id="content">
+<header>
+<h1 class="title">Module <code>devshell.ptcmd</code></h1>
+</header>
+<section id="section-intro">
+<p>This script takes the Cmd object from the built-in standard library, adds an input_method attribute, and replaces all calls to the standard input() with calls to the input_method attribute</p>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">&#34;&#34;&#34;
+This script takes the Cmd object from the built-in standard library, adds an input_method attribute, and replaces all calls to the standard input() with calls to the input_method attribute
+&#34;&#34;&#34;
+import ast, inspect, cmd
+
+class PTCmd(cmd.Cmd):
+    def __init__(self, completekey=&#39;tab&#39;, stdin=None, stdout=None,input_method=None):
+        super().__init__(completekey,stdin,stdout)
+        if input_method is None:
+            self.input_method = input
+        else:
+            self.input_method = input_method
+
+class SwitchInput(ast.NodeTransformer):
+    def visit_Call(self,node):
+        if isinstance(node.func,ast.Name) and node.func.id == &#39;input&#39;:
+            load = ast.Load()
+            return ast.Call(
+                    func = ast.Attribute(
+                            value=ast.Name(
+                                id=&#39;self&#39;,
+                                ctx=load,
+                                ),
+                            attr=&#39;input_method&#39;,
+                            ctx=load,
+                        ),
+                    args=node.args,
+                    keywords=node.keywords,
+                    )
+        else:
+            return node
+
+ptcmd_tree = ast.parse(inspect.getsource(PTCmd))
+cmd_tree = ast.fix_missing_locations(SwitchInput().visit(ast.parse(inspect.getsource(cmd.Cmd)))) #get a version that swaps all input(...) calls with self.input_method(...)
+
+#find the cmdloop function
+found = False
+for node in ast.walk(cmd_tree):
+    if isinstance(node,ast.FunctionDef) and node.name == &#39;cmdloop&#39;:
+        cmdloop_node = node
+        found = True
+        break
+assert(found)
+
+#find the PTCmd class
+found = False
+for node in ast.walk(ptcmd_tree):
+    if isinstance(node,ast.ClassDef) and node.name == &#39;PTCmd&#39;:
+        found = True
+        ptcmd_node = node
+        break
+assert(found)
+#add the cmdloop function to the class definition (overwrite inherited version)
+ptcmd_node.body.append(cmdloop_node)
+ptcmd_tree = ast.fix_missing_locations(ptcmd_tree)
+
+#Redefine the new class
+exec(compile(ptcmd_tree,&#39;&lt;ast&gt;&#39;,&#39;exec&#39;))</code></pre>
+</details>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+</section>
+<section>
+<h2 class="section-title" id="header-classes">Classes</h2>
+<dl>
+<dt id="devshell.ptcmd.PTCmd"><code class="flex name class">
+<span>class <span class="ident">PTCmd</span></span>
+<span>(</span><span>completekey='tab', stdin=None, stdout=None, input_method=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>A simple framework for writing line-oriented command interpreters.</p>
+<p>These are often useful for test harnesses, administrative tools, and
+prototypes that will later be wrapped in a more sophisticated interface.</p>
+<p>A Cmd instance or subclass instance is a line-oriented interpreter
+framework.
+There is no good reason to instantiate Cmd itself; rather,
+it's useful as a superclass of an interpreter class you define yourself
+in order to inherit Cmd's methods and encapsulate action methods.</p>
+<p>Instantiate a line-oriented interpreter framework.</p>
+<p>The optional argument 'completekey' is the readline name of a
+completion key; it defaults to the Tab key. If completekey is
+not None and the readline module is available, command completion
+is done automatically. The optional arguments stdin and stdout
+specify alternate input and output file objects; if not specified,
+sys.stdin and sys.stdout are used.</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class PTCmd(cmd.Cmd):
+    def __init__(self, completekey=&#39;tab&#39;, stdin=None, stdout=None,input_method=None):
+        super().__init__(completekey,stdin,stdout)
+        if input_method is None:
+            self.input_method = input
+        else:
+            self.input_method = input_method</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>cmd.Cmd</li>
+</ul>
+<h3>Subclasses</h3>
+<ul class="hlist">
+<li><a title="devshell.shell.DevshellCmd" href="shell.html#devshell.shell.DevshellCmd">DevshellCmd</a></li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="devshell.ptcmd.PTCmd.cmdloop"><code class="name flex">
+<span>def <span class="ident">cmdloop</span></span>(<span>self, intro=None)</span>
+</code></dt>
+<dd>
+<div class="desc"><p>Repeatedly issue a prompt, accept input, parse an initial prefix
+off the received input, and dispatch to action methods, passing them
+the remainder of the line as argument.</p></div>
+</dd>
+</dl>
+</dd>
+<dt id="devshell.ptcmd.SwitchInput"><code class="flex name class">
+<span>class <span class="ident">SwitchInput</span></span>
+</code></dt>
+<dd>
+<div class="desc"><p>A :class:<code>NodeVisitor</code> subclass that walks the abstract syntax tree and
+allows modification of nodes.</p>
+<p>The <code>NodeTransformer</code> will walk the AST and use the return value of the
+visitor methods to replace or remove the old node.
+If the return value of
+the visitor method is <code>None</code>, the node will be removed from its location,
+otherwise it is replaced with the return value.
+The return value may be the
+original node in which case no replacement takes place.</p>
+<p>Here is an example transformer that rewrites all occurrences of name lookups
+(<code>foo</code>) to <code>data['foo']</code>::</p>
+<p>class RewriteName(NodeTransformer):</p>
+<pre><code>   def visit_Name(self, node):
+       return copy_location(Subscript(
+           value=Name(id='data', ctx=Load()),
+           slice=Index(value=Str(s=node.id)),
+           ctx=node.ctx
+       ), node)
+</code></pre>
+<p>Keep in mind that if the node you're operating on has child nodes you must
+either transform the child nodes yourself or call the :meth:<code>generic_visit</code>
+method for the node first.</p>
+<p>For nodes that were part of a collection of statements (that applies to all
+statement nodes), the visitor may also return a list of nodes rather than
+just a single node.</p>
+<p>Usually you use the transformer like this::</p>
+<p>node = YourTransformer().visit(node)</p></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">class SwitchInput(ast.NodeTransformer):
+    def visit_Call(self,node):
+        if isinstance(node.func,ast.Name) and node.func.id == &#39;input&#39;:
+            load = ast.Load()
+            return ast.Call(
+                    func = ast.Attribute(
+                            value=ast.Name(
+                                id=&#39;self&#39;,
+                                ctx=load,
+                                ),
+                            attr=&#39;input_method&#39;,
+                            ctx=load,
+                        ),
+                    args=node.args,
+                    keywords=node.keywords,
+                    )
+        else:
+            return node</code></pre>
+</details>
+<h3>Ancestors</h3>
+<ul class="hlist">
+<li>ast.NodeTransformer</li>
+<li>ast.NodeVisitor</li>
+</ul>
+<h3>Methods</h3>
+<dl>
+<dt id="devshell.ptcmd.SwitchInput.visit_Call"><code class="name flex">
+<span>def <span class="ident">visit_Call</span></span>(<span>self, node)</span>
+</code></dt>
+<dd>
+<div class="desc"></div>
+<details class="source">
+<summary>
+<span>Expand source code</span>
+</summary>
+<pre><code class="python">def visit_Call(self,node):
+    if isinstance(node.func,ast.Name) and node.func.id == &#39;input&#39;:
+        load = ast.Load()
+        return ast.Call(
+                func = ast.Attribute(
+                        value=ast.Name(
+                            id=&#39;self&#39;,
+                            ctx=load,
+                            ),
+                        attr=&#39;input_method&#39;,
+                        ctx=load,
+                    ),
+                args=node.args,
+                keywords=node.keywords,
+                )
+    else:
+        return node</code></pre>
+</details>
+</dd>
+</dl>
+</dd>
+</dl>
+</section>
+</article>
+<nav id="sidebar">
+<h1>Index</h1>
+<div class="toc">
+<ul></ul>
+</div>
+<ul id="index">
+<li><h3>Super-module</h3>
+<ul>
+<li><code><a title="devshell" href="index.html">devshell</a></code></li>
+</ul>
+</li>
+<li><h3><a href="#header-classes">Classes</a></h3>
+<ul>
+<li>
+<h4><code><a title="devshell.ptcmd.PTCmd" href="#devshell.ptcmd.PTCmd">PTCmd</a></code></h4>
+<ul class="">
+<li><code><a title="devshell.ptcmd.PTCmd.cmdloop" href="#devshell.ptcmd.PTCmd.cmdloop">cmdloop</a></code></li>
+</ul>
+</li>
+<li>
+<h4><code><a title="devshell.ptcmd.SwitchInput" href="#devshell.ptcmd.SwitchInput">SwitchInput</a></code></h4>
+<ul class="">
+<li><code><a title="devshell.ptcmd.SwitchInput.visit_Call" href="#devshell.ptcmd.SwitchInput.visit_Call">visit_Call</a></code></li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</nav>
+</main>
+<footer id="footer">
+<p>Generated by <a href="https://pdoc3.github.io/pdoc"><cite>pdoc</cite> 0.8.1</a>.</p>
+</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/9.12.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad()</script>
+</body>
+</html>

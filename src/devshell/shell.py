@@ -1,11 +1,19 @@
 import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil,textwrap, argparse, shlex
 from contextlib import contextmanager
-from cmd import Cmd
+#from cmd import Cmd
 from pypager.pager import Pager
 from pypager.source import StringSource
 from io import StringIO
 from .injector import doctestify, get_target, get_ast_obj
+from .ptcmd import PTCmd
 from . import __version__
+
+
+from prompt_toolkit.shortcuts import PromptSession
+from prompt_toolkit.styles import Style
+from pygments.lexers.shell import BashLexer, BatchLexer, FishShellLexer, PowerShellLexer, TcshLexer
+from pygments.lexers.python import PythonConsoleLexer, PythonLexer
+from prompt_toolkit.lexers import PygmentsLexer
 
 
 @contextmanager
@@ -52,42 +60,51 @@ def _auto_debug_handler(exc_type,exc_value,exc_traceback):
 _default_excepthook = sys.excepthook
 
 
-class DevshellCmd(Cmd,object):
+class DevshellCmd(PTCmd):
     """
     This implements the command line interface for devshell
     """
-    prompt = '(devshell)$ '
+    prompt = [('class:prompt','(devshell)$ ')]
     intro = 'devshell version %s\nWelcome to devshell. Type help or ? to list commands. Start a line with ! to execute a shell command in a sub-shell (does not retain environmental variables).\n' % __version__
     _cdable = set(['package','module','class','root'])
     _callable = set(['function','method','coroutine','class'])
+    def __init__(self,completekey='tab',stdin=None,stdout=None):
+        self.cwd = os.getcwd()
+        self.ppwd = []
+        self._pls_cache = None
+        self.style = Style.from_dict({
+            'prompt':'#ff0066',
+            })
+        super(DevshellCmd,self).__init__(completekey,stdin,stdout,lexer=PygmentsLexer(BashLexer),style=self.style)
+
 
     
 
-    def _ls(self,args=''):
+    def _pls(self,args=''):
         args = args.strip()
         if args != '':
             orig_cwd = self.cwd
-            orig_pwd = list(self.pwd)
-            self._ls_cache = None
-            self.do_cd(args)
-            result = self._ls('')
+            orig_ppwd = list(self.ppwd)
+            self._pls_cache = None
+            self.do_pcd(args)
+            result = self._pls('')
             self.cwd = orig_cwd
             os.chdir(orig_cwd)
-            self.pwd = orig_pwd
-            self._ls_cache = None
+            self.ppwd = orig_ppwd
+            self._pls_cache = None
             return result
         else:
-            if self._ls_cache is not None:
-                return self._ls_cache
-            if len(self.pwd) == 0:
-                self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([self.cwd,os.path.join(self.cwd,'src')]),key=lambda mi: mi[1]) if (mi[1],mi[2]) != ('setup',False)]
-                return self._ls_cache
+            if self._pls_cache is not None:
+                return self._pls_cache
+            if len(self.ppwd) == 0:
+                self._pls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([self.cwd,os.path.join(self.cwd,'src')]),key=lambda mi: mi[1]) if (mi[1],mi[2]) != ('setup',False)]
+                return self._pls_cache
             else:
-                current_name,current_type = self.pwd[-1]
+                current_name,current_type = self.ppwd[-1]
                 if current_type == 'package':
 
-                    self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.pwd])]),key=lambda mi: mi[1])]
-                    package_fqn = '.'.join(item[0] for item in self.pwd)
+                    self._pls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.ppwd])]),key=lambda mi: mi[1])]
+                    package_fqn = '.'.join(item[0] for item in self.ppwd)
                     cwd = os.getcwd()
                     if not cwd in sys.path:
                         sys.path.insert(0,cwd)
@@ -98,71 +115,66 @@ class DevshellCmd(Cmd,object):
                         print(textwrap.indent(traceback.format_exc(),'    '))
                         return
 
-                    for item in self.pwd[1:]:
+                    for item in self.ppwd[1:]:
                         pkg = getattr(pkg,item[0])
                     for item_name,item in pkg.__dict__.items():
                         if inspect.getmodule(item) != pkg:
                             continue
                         if inspect.isfunction(item):
-                            self._ls_cache.append((item_name,'function'))
+                            self._pls_cache.append((item_name,'function'))
                         elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
-                            self._ls_cache.append((item_name,'coroutine'))
+                            self._pls_cache.append((item_name,'coroutine'))
                         elif inspect.isclass(item):
-                            self._ls_cache.append((item_name,'class'))
-                    self._ls_cache.sort()
-                    return self._ls_cache
+                            self._pls_cache.append((item_name,'class'))
+                    self._pls_cache.sort()
+                    return self._pls_cache
 
                 elif current_type == 'module':
-                    module_fqn = '.'.join(item[0] for item in self.pwd)
+                    module_fqn = '.'.join(item[0] for item in self.ppwd)
                     try:
                         mod = __import__(module_fqn)
                     except:
                         print('Could not import module: %s' % module_fqn)
                         print(textwrap.indent(traceback.format_exc(),'    '))
                         return
-                    for item in self.pwd[1:]:
+                    for item in self.ppwd[1:]:
                         mod = getattr(mod,item[0])
-                    self._ls_cache = []
+                    self._pls_cache = []
                     for item_name,item in mod.__dict__.items():
                         if inspect.getmodule(item) != mod:
                             continue
                         if inspect.isfunction(item):
-                            self._ls_cache.append((item_name,'function'))
+                            self._pls_cache.append((item_name,'function'))
                         elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
-                            self._ls_cache.append((item_name,'coroutine'))
+                            self._pls_cache.append((item_name,'coroutine'))
                         elif inspect.isclass(item):
-                            self._ls_cache.append((item_name,'class'))
-                    self._ls_cache.sort()
-                    return self._ls_cache
+                            self._pls_cache.append((item_name,'class'))
+                    self._pls_cache.sort()
+                    return self._pls_cache
                 elif current_type == 'class':
-                    klass_fqn = '.'.join(item[0] for item in self.pwd)
+                    klass_fqn = '.'.join(item[0] for item in self.ppwd)
                     try:
                         klass,_,_ = get_target(klass_fqn)
                     except:
                         print('Failed to get target: %s' % klass_fqn)
                         return
 
-                    self._ls_cache = []
+                    self._pls_cache = []
                     for item_name,item in klass.__dict__.items():
                         if inspect.ismethod(item):
-                            self._ls_cache.append((item_name,'method'))
+                            self._pls_cache.append((item_name,'method'))
                         elif inspect.isfunction(item):
-                            self._ls_cache.append((item_name,'function'))
+                            self._pls_cache.append((item_name,'function'))
                         elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
-                            self._ls_cache.append((item_name,'coroutine'))
+                            self._pls_cache.append((item_name,'coroutine'))
                         elif inspect.isclass(item):
-                            self._ls_cache.append((item_name,'class'))
-                    self._ls_cache.sort()
-                    return self._ls_cache
+                            self._pls_cache.append((item_name,'class'))
+                    self._pls_cache.sort()
+                    return self._pls_cache
                 else:
-                    print('Error - cannot perform ls when targeting a %s - try to run "cd .." first' % current_type)
+                    print('Error - cannot perform pls when targeting a %s - try to run "pcd .." first' % current_type)
                     return []
 
-    def __init__(self,*args,**kwargs):
-        self.cwd = os.getcwd()
-        self.pwd = []
-        self._ls_cache = None
-        super(DevshellCmd,self).__init__(*args,**kwargs)
     def do_h(self,args):
         """ Alias for help """
         self.do_help(args)
@@ -185,8 +197,55 @@ class DevshellCmd(Cmd,object):
         Restarts devshell at the current working directory with the current path
         Sometimes needed to cleanly re-import scripts that were already imported and then changed.
         """
-        sys.exit(subprocess.run([sys.executable,'-m','devshell','-d',os.path.abspath(os.getcwd()),'-t','.'.join([item[0] for item in self.pwd])]).returncode)
+        sys.exit(subprocess.run([sys.executable,'-m','devshell','-d',os.path.abspath(os.getcwd()),'-t','.'.join([item[0] for item in self.ppwd])]).returncode)
+    def do_venv(self,args):
+        """
+    Help: (devshell)$ venv [env]
+        Creates a virtual environment at the current location with the given name
+        If no name is given, the name will be "env"
+        """
+        if args.strip() == '':
+            args = 'env'
+        subprocess.run([sys.executable,'-m','venv',args])
+    def do_activate():
+        """
+    Help: (devshell)$ activate [env]
+        Activates the virtual environment at the current location with the given name
+        If no name is given, the name will be "env"
+        """
+        cwd = os.path.abspath(os.getcwd())
+        ppwd = '.'.join([item[0] for item in self.ppwd])
+        if sys.platform in ['win32','cygwin']:
+            subprocess.run(['cmd.exe','/C',r'"{env}\Scripts\activate.bat & {executable} -m devshell -d {cwd} -t {ppwd}"'.format(env=env,executable=os.path.basename(sys.executable),cwd=cwd,ppwd=ppwd)])
+        else:
+            default_shell = os.environ['SHELL']
+            shell_name = os.path.basename(default_shell)
+            subprocess.run([default_shell,'-c','"source {env}/bin/activate; {executable} -m devshell -d {cwd} -t {ppwd}"'.format(env=env,executable=os.path.basename(sys.executable),cwd=cwd,ppwd=ppwd)])
 
+    def do_deactivate():
+        """
+    Help: (devshell)$ activate [env]
+        Deactivates the current virtual environment 
+        Note: This will result in changing the current working directory and python target to what they were at the time the virtual environment was activated
+        """
+        if 'VIRTUAL_ENV' in os.environ:
+            print('Exiting %s' % os.environ['VIRTUAL_ENV'])
+            sys.exit(0)
+        else:
+            print('Not currently in a virtual environment')
+
+    def do_create(self,args):
+        """
+    Help: (devshell)$ create project_name
+        Creates a new directory with the provided project name
+        Creates a src subfolder with an empty python package with the project name
+        Creates an empty tests python package
+        Creates a setup.py
+        Creates a LICENSE file (MIT)
+        Creates a Makefile
+        Creates a docs subfolder
+        Creates a venv env and activates it
+        """
 
     def do_read(self,args):
         """
@@ -273,9 +332,9 @@ class DevshellCmd(Cmd,object):
             return
         else:
             editor=[editor]
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
-            current_name,current_type = self.pwd[-1]
+            current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
                 filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
                 if os.path.getsize(filepath) == 0:
@@ -309,9 +368,9 @@ class DevshellCmd(Cmd,object):
             editor=['gvim']
         else:
             editor=['vim']
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
-            current_name,current_type = self.pwd[-1]
+            current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
                 filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
                 if os.path.getsize(filepath) == 0:
@@ -348,7 +407,7 @@ class DevshellCmd(Cmd,object):
         If currently targeting a class or function, this will attempt to load and call that code with the provided positional args and keyword args - entering pdb debug mode on the first line. 
         If currently targeting a package or module, this will enter debug mode at the first line of the module as if the module's file were directly run with python -m pdb <filename>.
        """
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
             try:
                 obj,mod,mod_fqn = get_target(target_fqn)
@@ -356,8 +415,8 @@ class DevshellCmd(Cmd,object):
                 print('Failed to get target: %s' % target_fqn)
                 return
             args = args.strip()
-            obj_type = self.pwd[-1][1]
-            if len(self.pwd) == 0:
+            obj_type = self.ppwd[-1][1]
+            if len(self.ppwd) == 0:
                 print('No target is selected')
                 return
 
@@ -382,9 +441,9 @@ class DevshellCmd(Cmd,object):
             print('No target identified')
 
 
-    def do_listdir(self,args):
+    def do_ls(self,args):
         """
-    Help: (devshell)$ listdir path
+    Help: (devshell)$ ls path
         This lists the files/subfolders within the provided operating system folder path
         If path is not provided, then files/subfolders within the operating system folder path (current working directory) will be listed
         """
@@ -408,15 +467,15 @@ class DevshellCmd(Cmd,object):
 
 
 
-    def do_chdir(self,args):
+    def do_cd(self,args):
         """
-    Help: (devshell)$ chdir path
+    Help: (devshell)$ cd path
         This changes the operating system folder path (current working directory) where devshell will look for packages and modules
         """
         if os.path.exists(args) and os.path.isdir(args):
             os.chdir(args)
             self.cwd = os.getcwd()
-            self.pwd = []
+            self.ppwd = []
             self._ls_cache = None
         else:
             print('Error - path does not exist: %s' % args)
@@ -428,7 +487,7 @@ class DevshellCmd(Cmd,object):
         This will cause an interactive python recording session to begin with all items from the targeted item's module imported in automatically.
         All inputs and outputs will be recorded and entered into the targeted item's docstring as a doctest.
         """
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
             doctestify(target_fqn)
         else:
@@ -465,11 +524,11 @@ class DevshellCmd(Cmd,object):
     Help: (devshell)$ doctest [verbose]
         This runs the current doctests for the currently targeted item. verbose can be True or False. If unspecified, verbose=False.
         """
-        if len(self.pwd) == 0:
+        if len(self.ppwd) == 0:
             print('No target identified')
             return
-        current_type = self.pwd[-1][1]
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        current_type = self.ppwd[-1][1]
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
             try:
                 obj,mod,mod_fqn = get_target(target_fqn)
@@ -520,7 +579,7 @@ class DevshellCmd(Cmd,object):
             https://docs.pytest.org/en/latest/usage.html
             See --pdb, --trace, --capture
 
-        If there is no currently targeted item, pytest will be run against the folder indicated by getcwd:
+        If there is no currently targeted item, pytest will be run against the folder indicated by pwd:
             (devshell)$ pytest -ra --doctest-modules
                 is equivalent to:
                     python -m pytest . -ra --doctest-modules
@@ -539,15 +598,15 @@ class DevshellCmd(Cmd,object):
 
 
         arglist = [arg.strip() for arg in args.split() if arg.strip() != '']
-        if len(self.pwd) == 0:
+        if len(self.ppwd) == 0:
             run_cmd([sys.executable,'-m','pytest',os.path.abspath(self.cwd),'--doctest-modules']+arglist)
             return
-        current_type = self.pwd[-1][1]
+        current_type = self.ppwd[-1][1]
 
         item_names = []
         reached_module = False
         item_names_inside_module = []
-        for item_name,item_type in self.pwd:
+        for item_name,item_type in self.ppwd:
             item_names.append(item_name)
             if reached_module:
                 item_names_inside_module.append(item_name)
@@ -583,7 +642,7 @@ class DevshellCmd(Cmd,object):
             https://docs.pytest.org/en/latest/usage.html
             See --pdb, --trace, --capture
 
-        If there is no currently targeted item, coverage and pytest will be run against the folder indicated by getcwd:
+        If there is no currently targeted item, coverage and pytest will be run against the folder indicated by pwd:
             (devshell)$ coverage -ra
                 is functionally equivalent to:
                     python -m coverage run --parallel-mode --source=. pytest . -ra --doctest-modules
@@ -607,14 +666,14 @@ class DevshellCmd(Cmd,object):
             print('pytest is not installed')
             return
         arglist = [arg.strip() for arg in args.split() if arg.strip() != '']
-        if len(self.pwd) == 0:
+        if len(self.ppwd) == 0:
             run_coverage(self.cwd,arglist)
             return
-        current_type = self.pwd[-1][1]
+        current_type = self.ppwd[-1][1]
         item_names = []
         reached_module = False
         item_names_inside_module = []
-        for item_name,item_type in self.pwd:
+        for item_name,item_type in self.ppwd:
             item_names.append(item_name)
             if reached_module:
                 item_names_inside_module.append(item_name)
@@ -640,9 +699,9 @@ class DevshellCmd(Cmd,object):
     Help: (devshell)$ source
         This displays the file name and source code for the currently targeted item.
         """
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
-            current_name,current_type = self.pwd[-1]
+            current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
                 filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
                 if os.path.getsize(filepath) == 0:
@@ -696,9 +755,9 @@ class DevshellCmd(Cmd,object):
                 With -p, the results will be paginated and then printed to the console after
                 
         """
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
-            current_name,current_type = self.pwd[-1]
+            current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
                 #recurse through package directory
                 path = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')))
@@ -728,7 +787,7 @@ class DevshellCmd(Cmd,object):
     Help: (devshell)$ doc
         This displays the docstring for the currently targeted item.
         """
-        target_fqn = '.'.join(item[0] for item in self.pwd)
+        target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
             try:
                 obj,mod,mod_fqn = get_target(target_fqn)
@@ -737,10 +796,10 @@ class DevshellCmd(Cmd,object):
                 return
             doc = inspect.getdoc(obj)
             lines = []
-            if self.pwd[-1][1] in self._callable:
-                lines.append(self.pwd[-1][1]+': '+self.pwd[-1][0] + str(inspect.signature(obj)))
+            if self.ppwd[-1][1] in self._callable:
+                lines.append(self.ppwd[-1][1]+': '+self.ppwd[-1][0] + str(inspect.signature(obj)))
             else:
-                lines.append(self.pwd[-1][1]+': '+self.pwd[-1][0])
+                lines.append(self.ppwd[-1][1]+': '+self.ppwd[-1][0])
             if doc is not None:
                 lines.append('"""')
                 lines.append(re.sub('\n','\n    ',doc))
@@ -757,15 +816,15 @@ class DevshellCmd(Cmd,object):
             print('No target identified')
         
 
-    def do_getcwd(self,args):
+    def do_pwd(self,args):
         """
-    Help: (devshell)$ getcwd
+    Help: (devshell)$ pwd
         This displays the operating system folder path (current working directory) where devshell will look for packages and modules
         """
         print(self.cwd)
-    def do_ls(self,args):
+    def do_pls(self,args):
         """
-    Help: (devshell)$ ls [python_object]
+    Help: (devshell)$ pls [python_object]
         This will show all items contained within the currently targeted item.
             e.g. for a package, this would list the modules
             e.g. for a module, this would list the functions and classes
@@ -776,16 +835,14 @@ class DevshellCmd(Cmd,object):
 
         For tab completion, use the dot "." character to separate python items, not the slash "/" character.
 
-        This is NOT the same as the usual interpretation of ls in other shells.
-        For the usual interpretation, see listdir.
         """
         lines = []
-        result = self._ls(args)
+        result = self._pls(args)
         if result is None:
             return
         for item_name,item_type in result: 
             if item_type in self._cdable:
-                if len(self.pwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item_name,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item_name,'__init__.py')):
+                if len(self.ppwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item_name,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item_name,'__init__.py')):
                     lines.append('    %s%sdirectory (./src)' % (item_name.ljust(30), item_type.ljust(30)))
                 else:
                     lines.append('    %s%sdirectory' % (item_name.ljust(30), item_type.ljust(30)))
@@ -793,62 +850,60 @@ class DevshellCmd(Cmd,object):
             else:
                 lines.append('    %s%snon-directory' % (item_name.ljust(30), item_type.ljust(30)))
         print('\n'.join(lines))
-    def _pwd(self):
-        if len(self.pwd) > 0:
-            return ('/'+'.'.join(item[0] for item in self.pwd),self.pwd[-1][1])
+    def _ppwd(self):
+        if len(self.ppwd) > 0:
+            return ('/'+'.'.join(item[0] for item in self.ppwd),self.ppwd[-1][1])
         else:
             return '/','root'
-    def do_pwd(self,args):
+    def do_ppwd(self,args):
         """
-    Help: (devshell)$ pwd
+    Help: (devshell)$ ppwd
         This shows the fully qualified name of the currently targeted item.
 
-        This is NOT the same as the usual interpretation of pwd in other shells.
-        For the usual interpretation, see getcwd.
         """
-        pwd,current_type = self._pwd()
-        print('%s (%s)' % (pwd.ljust(30),current_type))
+        ppwd,current_type = self._ppwd()
+        print('%s (%s)' % (ppwd.ljust(30),current_type))
 
-    def _cd(self,args):
+    def _pcd(self,args):
         resolved = False
         clear_ls_cache = False
         if args == '.':
             resolved = True
             clear_ls_cache = False
         elif args == '..':
-            if len(self.pwd) > 0:
-                last_item,last_item_type = self.pwd.pop()
-                if len(self.pwd) == 0 and last_item_type == 'package' and os.path.basename(self.cwd) == 'src' and os.path.exists(os.path.join(self.cwd,last_item,'__init__.py')) and not os.path.exists(os.path.join(self.cwd,'..',last_item,'__init__.py')):
-                    self.do_chdir('..')
+            if len(self.ppwd) > 0:
+                last_item,last_item_type = self.ppwd.pop()
+                if len(self.ppwd) == 0 and last_item_type == 'package' and os.path.basename(self.cwd) == 'src' and os.path.exists(os.path.join(self.cwd,last_item,'__init__.py')) and not os.path.exists(os.path.join(self.cwd,'..',last_item,'__init__.py')):
+                    self.do_cd('..')
 
             resolved = True
             clear_ls_cache = True
             #go up if in src
         elif args == '/':
-            del self.pwd[:]
+            del self.ppwd[:]
             resolved = True
             clear_ls_cache = True
         elif '.' not in args:
             for item,item_type in self._ls():
                 if item == args:
-                    if len(self.pwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item,'__init__.py')):
-                        self.do_chdir('src')
-                    self.pwd.append((item,item_type))
+                    if len(self.ppwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item,'__init__.py')):
+                        self.do_cd('src')
+                    self.ppwd.append((item,item_type))
                     resolved = True
                     clear_ls_cache = True
                     break
         else:
             pieces = args.split('.')
-            orig_pwd = list(self.pwd)
+            orig_ppwd = list(self.ppwd)
             resolved = True
             clear_ls_cache = False
             orig_ls_cache = self._ls_cache
             for piece in pieces:
                 self._ls_cache = None
-                piece_resolved,piece_clear_ls_cache = self._cd(piece)
+                piece_resolved,piece_clear_ls_cache = self._pcd(piece)
                 if not piece_resolved:
                     resolved = False
-                    self.pwd = orig_pwd
+                    self.ppwd = orig_ppwd
                     clear_ls_cache = False
                     break
                 else:
@@ -869,14 +924,14 @@ class DevshellCmd(Cmd,object):
         """
         self.do_interactive(args)
 
-    def do_cd(self,args):
+    def do_pcd(self,args):
         """
-    Help: (devshell)$ cd <argument>
+    Help: (devshell)$ pcd <argument>
         This changes the currently targeted item.
         
         <argument> can be part of a fully qualified name to append to the end of the current target.
 
-        If there is no current target, then one may cd into a package within the current working directory or within a package in a subfolder of the current working directory named "src".
+        If there is no current target, then one may pcd into a package within the current working directory or within a package in a subfolder of the current working directory named "src".
         Cding into the "src" subfolder only occurs when the src subfolder has the package with the given name and the current working directory does not.
         Cding into the "src" subfolder will change the current working directory to be the "src" subfolder.
         Command completion is supported via the tab key.
@@ -884,30 +939,27 @@ class DevshellCmd(Cmd,object):
 
         The following are special invocations:
 
-            (devshell)$ cd /
+            (devshell)$ pcd /
                 This will remove all parts of the current fully qualified name
 
-            (devshell)$ cd .
+            (devshell)$ pcd .
                 This has no effect
 
-            (devshell)$ cd ..
+            (devshell)$ pcd ..
                 This removes the last piece of the currently fully qualified name (navigates up to the parent item)
                 If leaving a package to a subfolder named "src", will also change the current working directory to be the parent directory of "src" if a package with the current target as its name exists only in the "src" directory and not in the parent directory.
 
-        This is NOT the same as the usual interpretation of cd in other shells.
-        For the usual interpretation, see chdir.
-        
         """
-        resolved,clear_ls_cache = self._cd(args)
+        resolved,clear_ls_cache = self._pcd(args)
         if not resolved is True:
             print('Error - "%s" does not exist' % args)
         #else:
-        #    self.prompt = '(devshell)%s$ ' % self._pwd()
+        #    self.prompt = '(devshell)%s$ ' % self._ppwd()
         if clear_ls_cache:
             self._ls_cache = None
-    def complete_cd(self,text,line,begin_idx,end_idx):
+    def complete_pcd(self,text,line,begin_idx,end_idx):
         return self._complete_python(text,line,begin_idx,end_idx)
-    def complete_ls(self,text,line,begin_idx,end_idx):
+    def complete_pls(self,text,line,begin_idx,end_idx):
         return self._complete_python(text,line,begin_idx,end_idx)
     def _complete_python(self,text,line,begin_idx,end_idx):
         orig_cwd = self.cwd
@@ -919,29 +971,29 @@ class DevshellCmd(Cmd,object):
             return results
 
         else:
-            orig_pwd = list(self.pwd)
+            orig_ppwd = list(self.ppwd)
             orig_ls_cache = self._ls_cache
             ts = text.split('.')
             front = '.'.join(ts[:-1])
             
             last_piece = ts[-1]
-            resolved,clear_ls_cache = self._cd(front)
+            resolved,clear_ls_cache = self._pcd(front)
             if resolved:
                 self._ls_cache = None
                 results = [front+'.'+item[0] for item in self._ls() if item[0].startswith(last_piece)]
             else:
                 results = []
-            self.pwd = orig_pwd
+            self.ppwd = orig_ppwd
             self._ls_cache = orig_ls_cache
             if self.cwd != orig_cwd:
                 self.cwd = orig_cwd
                 os.chdir(orig_cwd)
             return results
-    def complete_chdir(self,text,line,begin_idx,end_idx):
-        return self._complete_dirs('chdir',text,line,begin_idx,end_idx)
+    def complete_cd(self,text,line,begin_idx,end_idx):
+        return self._complete_dirs('cd',text,line,begin_idx,end_idx)
 
-    def complete_listdir(self,text,line,begin_idx,end_idx):
-        return self._complete_dirs('listdir',text,line,begin_idx,end_idx)
+    def complete_ls(self,text,line,begin_idx,end_idx):
+        return self._complete_dirs('ls',text,line,begin_idx,end_idx)
 
     def complete_rmtree(self,text,line,begin_idx,end_idx):
         return self._complete_dirs('rmtree',text,line,begin_idx,end_idx)
