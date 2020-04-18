@@ -63,87 +63,100 @@ class DoctestifyCmd(Cmd,object):
 
     
 
-    def _ls(self):
-        if self._ls_cache is not None:
-            return self._ls_cache
-        if len(self.pwd) == 0:
-            self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([self.cwd,os.path.join(self.cwd,'src')]),key=lambda mi: mi[1]) if (mi[1],mi[2]) != ('setup',False)]
-            return self._ls_cache
+    def _ls(self,args=''):
+        args = args.strip()
+        if args != '':
+            orig_cwd = self.cwd
+            orig_pwd = list(self.pwd)
+            self._ls_cache = None
+            self.do_cd(args)
+            result = self._ls('')
+            self.cwd = orig_cwd
+            os.chdir(orig_cwd)
+            self.pwd = orig_pwd
+            self._ls_cache = None
+            return result
         else:
-            current_name,current_type = self.pwd[-1]
-            if current_type == 'package':
-
-                self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.pwd])]),key=lambda mi: mi[1])]
-                package_fqn = '.'.join(item[0] for item in self.pwd)
-                cwd = os.getcwd()
-                if not cwd in sys.path:
-                    sys.path.insert(0,cwd)
-                try:
-                    pkg = __import__(package_fqn)
-                except:
-                    print('Could not fully import package: %s' % package_fqn)
-                    print(textwrap.indent(traceback.format_exc(),'    '))
-                    return
-
-                for item in self.pwd[1:]:
-                    pkg = getattr(pkg,item[0])
-                for item_name,item in pkg.__dict__.items():
-                    if inspect.getmodule(item) != pkg:
-                        continue
-                    if inspect.isfunction(item):
-                        self._ls_cache.append((item_name,'function'))
-                    elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
-                        self._ls_cache.append((item_name,'coroutine'))
-                    elif inspect.isclass(item):
-                        self._ls_cache.append((item_name,'class'))
-                self._ls_cache.sort()
+            if self._ls_cache is not None:
                 return self._ls_cache
-
-            elif current_type == 'module':
-                module_fqn = '.'.join(item[0] for item in self.pwd)
-                try:
-                    mod = __import__(module_fqn)
-                except:
-                    print('Could not import module: %s' % module_fqn)
-                    print(textwrap.indent(traceback.format_exc(),'    '))
-                    return
-                for item in self.pwd[1:]:
-                    mod = getattr(mod,item[0])
-                self._ls_cache = []
-                for item_name,item in mod.__dict__.items():
-                    if inspect.getmodule(item) != mod:
-                        continue
-                    if inspect.isfunction(item):
-                        self._ls_cache.append((item_name,'function'))
-                    elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
-                        self._ls_cache.append((item_name,'coroutine'))
-                    elif inspect.isclass(item):
-                        self._ls_cache.append((item_name,'class'))
-                self._ls_cache.sort()
-                return self._ls_cache
-            elif current_type == 'class':
-                klass_fqn = '.'.join(item[0] for item in self.pwd)
-                try:
-                    klass,_,_ = get_target(klass_fqn)
-                except:
-                    print('Failed to get target: %s' % klass_fqn)
-                    return
-
-                self._ls_cache = []
-                for item_name,item in klass.__dict__.items():
-                    if inspect.ismethod(item):
-                        self._ls_cache.append((item_name,'method'))
-                    elif inspect.isfunction(item):
-                        self._ls_cache.append((item_name,'function'))
-                    elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
-                        self._ls_cache.append((item_name,'coroutine'))
-                    elif inspect.isclass(item):
-                        self._ls_cache.append((item_name,'class'))
-                self._ls_cache.sort()
+            if len(self.pwd) == 0:
+                self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([self.cwd,os.path.join(self.cwd,'src')]),key=lambda mi: mi[1]) if (mi[1],mi[2]) != ('setup',False)]
                 return self._ls_cache
             else:
-                print('Error - cannot perform ls when targeting a %s - try to run "cd .." first' % current_type)
-                return []
+                current_name,current_type = self.pwd[-1]
+                if current_type == 'package':
+
+                    self._ls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.pwd])]),key=lambda mi: mi[1])]
+                    package_fqn = '.'.join(item[0] for item in self.pwd)
+                    cwd = os.getcwd()
+                    if not cwd in sys.path:
+                        sys.path.insert(0,cwd)
+                    try:
+                        pkg = __import__(package_fqn)
+                    except:
+                        print('Could not fully import package: %s' % package_fqn)
+                        print(textwrap.indent(traceback.format_exc(),'    '))
+                        return
+
+                    for item in self.pwd[1:]:
+                        pkg = getattr(pkg,item[0])
+                    for item_name,item in pkg.__dict__.items():
+                        if inspect.getmodule(item) != pkg:
+                            continue
+                        if inspect.isfunction(item):
+                            self._ls_cache.append((item_name,'function'))
+                        elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
+                            self._ls_cache.append((item_name,'coroutine'))
+                        elif inspect.isclass(item):
+                            self._ls_cache.append((item_name,'class'))
+                    self._ls_cache.sort()
+                    return self._ls_cache
+
+                elif current_type == 'module':
+                    module_fqn = '.'.join(item[0] for item in self.pwd)
+                    try:
+                        mod = __import__(module_fqn)
+                    except:
+                        print('Could not import module: %s' % module_fqn)
+                        print(textwrap.indent(traceback.format_exc(),'    '))
+                        return
+                    for item in self.pwd[1:]:
+                        mod = getattr(mod,item[0])
+                    self._ls_cache = []
+                    for item_name,item in mod.__dict__.items():
+                        if inspect.getmodule(item) != mod:
+                            continue
+                        if inspect.isfunction(item):
+                            self._ls_cache.append((item_name,'function'))
+                        elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
+                            self._ls_cache.append((item_name,'coroutine'))
+                        elif inspect.isclass(item):
+                            self._ls_cache.append((item_name,'class'))
+                    self._ls_cache.sort()
+                    return self._ls_cache
+                elif current_type == 'class':
+                    klass_fqn = '.'.join(item[0] for item in self.pwd)
+                    try:
+                        klass,_,_ = get_target(klass_fqn)
+                    except:
+                        print('Failed to get target: %s' % klass_fqn)
+                        return
+
+                    self._ls_cache = []
+                    for item_name,item in klass.__dict__.items():
+                        if inspect.ismethod(item):
+                            self._ls_cache.append((item_name,'method'))
+                        elif inspect.isfunction(item):
+                            self._ls_cache.append((item_name,'function'))
+                        elif hasattr(inspect,'iscoroutinefunction') and inspect.iscoroutinefunction(item):
+                            self._ls_cache.append((item_name,'coroutine'))
+                        elif inspect.isclass(item):
+                            self._ls_cache.append((item_name,'class'))
+                    self._ls_cache.sort()
+                    return self._ls_cache
+                else:
+                    print('Error - cannot perform ls when targeting a %s - try to run "cd .." first' % current_type)
+                    return []
 
     def __init__(self,*args,**kwargs):
         self.cwd = os.getcwd()
@@ -752,7 +765,7 @@ class DoctestifyCmd(Cmd,object):
         print(self.cwd)
     def do_ls(self,args):
         """
-    Help: (doctestify)$ ls
+    Help: (doctestify)$ ls [python_object]
         This will show all items contained within the currently targeted item.
             e.g. for a package, this would list the modules
             e.g. for a module, this would list the functions and classes
@@ -761,11 +774,13 @@ class DoctestifyCmd(Cmd,object):
         Note that using this command may result in importing the module containing the currently targeted item.
         Note that setup.py files will be purposefully excluded because importing/inspecting them without providing commands results in terminating python.
 
+        For tab completion, use the dot "." character to separate python items, not the slash "/" character.
+
         This is NOT the same as the usual interpretation of ls in other shells.
         For the usual interpretation, see listdir.
         """
         lines = []
-        result = self._ls()
+        result = self._ls(args)
         if result is None:
             return
         for item_name,item_type in result: 
@@ -892,9 +907,17 @@ class DoctestifyCmd(Cmd,object):
             self._ls_cache = None
     def complete_cd(self,text,line,begin_idx,end_idx):
         return self._complete_python(text,line,begin_idx,end_idx)
+    def complete_ls(self,text,line,begin_idx,end_idx):
+        return self._complete_python(text,line,begin_idx,end_idx)
     def _complete_python(self,text,line,begin_idx,end_idx):
+        orig_cwd = self.cwd
         if '.' not in text:
-            return [item[0] for item in self._ls() if item[0].startswith(text)]
+            results = [item[0] for item in self._ls() if item[0].startswith(text)]
+            if self.cwd != orig_cwd:
+                self.cwd = orig_cwd
+                os.chdir(orig_cwd)
+            return results
+
         else:
             orig_pwd = list(self.pwd)
             orig_ls_cache = self._ls_cache
@@ -910,6 +933,9 @@ class DoctestifyCmd(Cmd,object):
                 results = []
             self.pwd = orig_pwd
             self._ls_cache = orig_ls_cache
+            if self.cwd != orig_cwd:
+                self.cwd = orig_cwd
+                os.chdir(orig_cwd)
             return results
     def complete_chdir(self,text,line,begin_idx,end_idx):
         return self._complete_dirs('chdir',text,line,begin_idx,end_idx)
