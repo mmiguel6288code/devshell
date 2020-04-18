@@ -40,5 +40,5 @@ setup(
 
     install_requires=REQUIRES,
     tests_require=[],
-    packages=find_packages(),
+    packages=find_packages('src'),
 )
