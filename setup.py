@@ -1,7 +1,7 @@
 from io import open
 from setuptools import find_packages, setup
 
-with open('doctestify/__init__.py', 'r') as f:
+with open('devshell/__init__.py', 'r') as f:
     for line in f:
         if line.startswith('__version__'):
             version = line.strip().split('=')[1].strip(' \'"')
@@ -14,19 +14,19 @@ with open('README.md','r') as f:
 REQUIRES = ['pypager','pytest','coverage']
 
 setup(
-    name='doctestify',
+    name='devshell',
     version=version,
-    description='Record an interpreter session and automatically insert it into a docstring. Also provides a shell-like tool that navigates through python packages/modules/classes for making doctests, inspecting, debugging, editing, and testing code.',
+    description='Shell-like tool to make it easier to develop python code',
     long_description=readme,
     long_description_content_type='text/markdown',
     author='Matthew Miguel',
     author_email='mmiguel6288code@gmail.com',
     maintainer='Matthew Miguel',
     maintainer_email='mmiguel6288code@gmail.com',
-    url='https://github.com/mmiguel6288code/doctestify',
+    url='https://github.com/mmiguel6288code/devshell',
     license='MIT',
     keywords=[
-        'doctest','doctests','docstring','docstrings','tests','testing','test','shell', 'inspect', 'inspection', 'creating','create','run','running','interactive',
+        'doctest','doctests','docstring','docstrings','tests','testing','test','shell', 'inspect', 'inspection', 'creating','create','run','running','interactive','coverage','pytest',
     ],
     classifiers=[
         'Intended Audience :: Developers',

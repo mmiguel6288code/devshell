@@ -1,4 +1,4 @@
-files = setup.py doctestify/*.py
+files = setup.py devshell/*.py
 all: build upload
 build: $(files)
 	echo "building"

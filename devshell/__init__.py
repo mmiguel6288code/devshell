@@ -1,3 +1,3 @@
-__version__ = '1.2.9'
+__version__ = '0.0.1'
 from .injector import doctestify, set_end_interactive
 from .shell import DevshellCmd
