@@ -1,7 +1,7 @@
 from io import open
 from setuptools import find_packages, setup
 
-with open('devshell/__init__.py', 'r') as f:
+with open('src/devshell/__init__.py', 'r') as f:
     for line in f:
         if line.startswith('__version__'):
             version = line.strip().split('=')[1].strip(' \'"')
