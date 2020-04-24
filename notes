@@ -1,0 +1,42 @@
+Given a code node:
+	Get start and end positions
+	Get a docstring reference
+	Get a test reference
+	Debug with inputs defined in a fixture?
+	Debug breakpoints
+	Run with logging
+	Open vim to edit
+        doctestify
+	Run doctests
+	run test reference
+	Run doctests and test reference
+	open code and test side by side in vim
+        show docstring/source
+
+Given a docstring reference:
+	Get start and end positions
+	Insert text
+	Erase all text
+
+Given a test reference:
+	Get start and end positions
+	Create test file and function
+	Do something with fixtures?
+	open vim to edit
+	Run test reference
+
+From any folder:
+    Make a new project
+    Preview readme markdown
+    Run coverage on whole project
+    pip
+    venv/activate/deactivate
+    grep
+    restart/refresh --> may be OBE if only using AST. 
+    config
+    python
+
+
+
+
+Requirements: setuptools, wheel, pip, twine, keyring, keyrings.alt, pdoc3, pypager
