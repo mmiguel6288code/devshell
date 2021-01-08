@@ -80,7 +80,7 @@ def get_ast_obj(target_fqn,obj=None,module=None,module_fqn=None):
     elif inspect.isfunction(obj):
         ast_obj = [node for node in ast.walk(tree) if isinstance(node,ast.FunctionDef) and node.name == pieces[-1]][0]
 
-    return ast_obj, filepath,source
+    return ast_obj, filepath,source, src_lines
 
 class DoctestInjector(object):
     """
@@ -92,7 +92,7 @@ class DoctestInjector(object):
         self.obj = obj
         self.module=module
         self.module_fqn = module_fqn
-        ast_obj,self.filepath,self.original_source = get_ast_obj(target_fqn,obj,module,module_fqn)
+        ast_obj,self.filepath,self.original_source,self.src_lines = get_ast_obj(target_fqn,obj,module,module_fqn)
 
         if isinstance(ast_obj.body[0],ast.Expr) and isinstance(ast_obj.body[0].value,ast.Str):
             #docstring already exists
@@ -105,10 +105,10 @@ class DoctestInjector(object):
                 #python 3.7-
                 line_index = ast_doc.lineno-1 #last line of docstring (line containing the ending quotes)
             byte_index = ast_doc.col_offset
-            indentation = re.search('^\\s*',src_lines[line_index]).group(0) #use docstring end line to determine indentation
-            newline = re.search('[\r\n]+$',src_lines[line_index]).group(0) #use docstring end line to determine newline
-            top = src_lines[:line_index+1] #include entire docstring including end line 
-            bottom = src_lines[line_index+1:] #everything else
+            indentation = re.search('^\\s*',self.src_lines[line_index]).group(0) #use docstring end line to determine indentation
+            newline = re.search('[\r\n]+$',self.src_lines[line_index]).group(0) #use docstring end line to determine newline
+            top = self.src_lines[:line_index+1] #include entire docstring including end line 
+            bottom = self.src_lines[line_index+1:] #everything else
             ending = '"""'+top[-1].split('"""')[-1] #get the trailing quotes and characters after doctsring
             top[-1] = top[-1][len(indentation):-len(ending)]+newline #remove trailing from top
             bottom.insert(0,indentation+ending) #add trailing to bottom
@@ -116,9 +116,9 @@ class DoctestInjector(object):
             if len(ast_obj.body) == 1 and ast_obj.lineno == ast_obj.body[0].lineno:
                 #docstring does not exist for a single-line function
                 line_index = ast_obj.lineno-1 #line of function
-                indentation = re.search('^\\s*',src_lines[line_index]).group(0).strip('\r\n')+'    ' #use indentation of function plus four spaces
-                newline = re.search('[\r\n]+$',src_lines[line_index]).group(0) #use newline of function line
-                top = src_lines[:line_index+1] #include funtion
+                indentation = re.search('^\\s*',self.src_lines[line_index]).group(0).strip('\r\n')+'    ' #use indentation of function plus four spaces
+                newline = re.search('[\r\n]+$',self.src_lines[line_index]).group(0) #use newline of function line
+                top = self.src_lines[:line_index+1] #include funtion
                 bottom = src_lines[ast_obj.lineno:] #everything after function
                 ast_first = ast_obj.body[0] #first (and only) element in body
                 byte_index = ast_first.col_offset #starting position of first element
@@ -132,11 +132,11 @@ class DoctestInjector(object):
                 ast_first = ast_obj.body[0]
                 line_index = ast_first.lineno-1 #line number of first element in body of definition
                 byte_index = ast_first.col_offset
-                indentation = re.search('^\\s*',src_lines[line_index]).group(0) #use first element line to determine indentation
-                newline = re.search('[\r\n]+$',src_lines[line_index]).group(0) #use first element line to determine newline
-                top = src_lines[:line_index] #everything up to but not including first element
+                indentation = re.search('^\\s*',self.src_lines[line_index]).group(0) #use first element line to determine indentation
+                newline = re.search('[\r\n]+$',self.src_lines[line_index]).group(0) #use first element line to determine newline
+                top = self.src_lines[:line_index] #everything up to but not including first element
                 top.append(indentation+'"""'+newline) #add new docstring starting quotes
-                bottom = src_lines[ast_obj.body[0].lineno-1:] #first element and everything after
+                bottom = self.src_lines[ast_obj.body[0].lineno-1:] #first element and everything after
                 bottom.insert(0,indentation+'"""'+newline) #add docstring ending quotes
         self.top = top
         self.bottom = bottom
