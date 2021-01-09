@@ -75,7 +75,10 @@ class DevshellCmd(PTCmd):
     def __init__(self,completekey='tab',stdin=None,stdout=None):
         self.cwd = os.getcwd()
         self.orig_sys_path = sys.path
-        self.ppwd = []
+        if os.path.exists(os.path.join(self.cwd,'__init__.py')):
+            self.ppwd = [(os.path.basename(self.cwd),'package')]
+        else:
+            self.ppwd = []
         self._pls_cache = None
         self.style = Style.from_dict({
             'prompt':'#ff0066',
@@ -119,12 +122,19 @@ class DevshellCmd(PTCmd):
 
                     self._pls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in mod_ppwd])]),key=lambda mi: mi[1])]
                     package_fqn = '.'.join(item[0] for item in self.ppwd)
+                    cwd = self.cwd
+                    current_sys_path = sys.path
+                    while os.path.exists(os.path.join(cwd,'__init__.py')):
+                        cwd = os.path.dirname(cwd)
+                    sys.path = self.orig_sys_path + [cwd]
                     try:
                         pkg = __import__(package_fqn)
                     except:
                         print('Could not fully import package: %s' % package_fqn)
                         print(textwrap.indent(traceback.format_exc(),'    '))
                         return
+                    finally:
+                        sys.path = current_sys_path
 
                     for item in self.ppwd[1:]:
                         pkg = getattr(pkg,item[0])
@@ -209,54 +219,68 @@ class DevshellCmd(PTCmd):
         Sometimes needed to cleanly re-import scripts that were already imported and then changed.
         """
         sys.exit(subprocess.run([sys.executable,'-m','devshell','-d',os.path.abspath(os.getcwd()),'-t','.'.join([item[0] for item in self.ppwd])]).returncode)
-    def do_venv(self,args):
-        """
-    Help: (devshell)$ venv [env]
-        Creates a virtual environment at the current location with the given name
-        If no name is given, the name will be "env"
-        """
-        if args.strip() == '':
-            args = 'env'
-        subprocess.run([sys.executable,'-m','venv',args])
-    def do_activate():
-        """
-    Help: (devshell)$ activate [env]
-        Activates the virtual environment at the current location with the given name
-        If no name is given, the name will be "env"
-        """
-        cwd = os.path.abspath(os.getcwd())
-        ppwd = '.'.join([item[0] for item in self.ppwd])
-        if sys.platform in ['win32','cygwin']:
-            subprocess.run(['cmd.exe','/C',r'"{env}\Scripts\activate.bat & {executable} -m devshell -d {cwd} -t {ppwd}"'.format(env=env,executable=os.path.basename(sys.executable),cwd=cwd,ppwd=ppwd)])
-        else:
-            default_shell = os.environ['SHELL']
-            shell_name = os.path.basename(default_shell)
-            subprocess.run([default_shell,'-c','"source {env}/bin/activate; {executable} -m devshell -d {cwd} -t {ppwd}"'.format(env=env,executable=os.path.basename(sys.executable),cwd=cwd,ppwd=ppwd)])
+    #def do_venv(self,args):
+    #    """
+    #Help: (devshell)$ venv [env]
+    #    Creates a virtual environment at the current location with the given name
+    #    If no name is given, the name will be "env"
+    #    """
+    #    if args.strip() == '':
+    #        args = 'env'
+    #    subprocess.run([sys.executable,'-m','venv',args])
+    #    self.do_activate('',bootstrap_devshell=True)
+    #def do_activate(self,args,bootstrap_devshell=False):
+    #    """
+    #Help: (devshell)$ activate [env]
+    #    Activates the virtual environment at the current location with the given name
+    #    If no name is given, the name will be "env"
+    #    """
+    #    if args.strip() == '':
+    #        args = 'env'
+    #    cwd = os.path.abspath(os.getcwd())
+    #    ppwd = '.'.join([item[0] for item in self.ppwd])
+    #    if not bootstrap_devshell:
+    #        if len(ppwd) > 0:
+    #            exec_str = '{executable} -m devshell -d {cwd} -t {ppwd}'.format(executable=os.path.basename(sys.executable),cwd=cwd,ppwd=ppwd)
+    #
+    #        else:
+    #            exec_str = '{executable} -m devshell -d {cwd}'.format(executable=os.path.basename(sys.executable),cwd=cwd)
+    #    else:
+    #        exec_str = '{executable} -m pip install devshell'.format(executable=os.path.basename(sys.executable),cwd=cwd,ppwd=ppwd)
+    #
+    #
+    #    if sys.platform in ['win32','cygwin']:
+    #        subprocess.run(['cmd.exe','/C',r'"cd {cwd}; {env}\Scripts\activate.bat & {exec_str}"'.format(env=args,cwd=cwd,exec_str=exec_str)])
+    #    else:
+    #        default_shell = os.environ['SHELL']
+    #        shell_name = os.path.basename(default_shell)
+    #        subprocess.run([default_shell,'-c','"cd {cwd}; source {env}/bin/activate; {exec_str}"'.format(env=args,cwd=cwd,exec_str=exec_str)])
+    #
+    #
+    #def do_deactivate(self,args):
+    #    """
+    #Help: (devshell)$ deactivate
+    #    Deactivates the current virtual environment 
+    #    Note: This will result in changing the current working directory and python target to what they were at the time the virtual environment was activated
+    #    """
+    #    if 'VIRTUAL_ENV' in os.environ:
+    #        print('Exiting %s' % os.environ['VIRTUAL_ENV'])
+    #        sys.exit(0)
+    #    else:
+    #        print('Not currently in a virtual environment')
 
-    def do_deactivate():
-        """
-    Help: (devshell)$ activate [env]
-        Deactivates the current virtual environment 
-        Note: This will result in changing the current working directory and python target to what they were at the time the virtual environment was activated
-        """
-        if 'VIRTUAL_ENV' in os.environ:
-            print('Exiting %s' % os.environ['VIRTUAL_ENV'])
-            sys.exit(0)
-        else:
-            print('Not currently in a virtual environment')
-
-    def do_create(self,args):
-        """
-    Help: (devshell)$ create project_name
-        Creates a new directory with the provided project name
-        Creates a src subfolder with an empty python package with the project name
-        Creates an empty tests python package
-        Creates a setup.py
-        Creates a LICENSE file (MIT)
-        Creates a Makefile
-        Creates a docs subfolder
-        Creates a venv env and activates it
-        """
+    #def do_create(self,args):
+    #    """
+    #Help: (devshell)$ create project_name
+    #    Creates a new directory with the provided project name
+    #    Creates a src subfolder with an empty python package with the project name
+    #    Creates an empty tests python package
+    #    Creates a setup.py
+    #    Creates a LICENSE file (MIT)
+    #    Creates a Makefile
+    #    Creates a docs subfolder
+    #    Creates a venv env and activates it
+    #    """
 
     def do_read(self,args):
         """
@@ -282,7 +306,13 @@ class DevshellCmd(PTCmd):
         Deletes the file specified by filename. Will not delete a directory.
         See rmtree to delete a directory
         """
-        os.remove(args)
+        try:
+            os.remove(args)
+        except:
+            traceback.print_exc()
+            if '-r' in args:
+                print('To remove a folder use the rmtree command')
+
     def do_rmtree(self,args):
         """
     Help: (devshell)$ rmtree dirname
