@@ -159,23 +159,32 @@ class DoctestInjector(object):
             last_line = line
         indented_middle[-1] = indented_middle[-1].rstrip() + self.newline #don't indent the ending triple quotes
         return ''.join(self.top+ indented_middle + self.bottom)
-    def doctest_console(self):
+    def doctest_console(self,resume=False):
         """
         This function runs doctests on the target file, loads the file, and enters a special interactive mode with inputs/outputs being recorded.
         When the console is done being used (via Ctrl+D), the recorded inputs/outputs will be inserted into the docstring of the target object.
         Doctests are then run for the udpated code and if there are no problems, the updated code is written to the file location.
         If there are problems, the updated code is saved to a file in the same folder as the target file but with the suffix ".failed_doctest_insert".
         """
-        print('Testing doctest execution of original file')
+        print('='*80+'\nDoctestify:\n    Testing doctest execution of original file')
         oldfailcount,oldtestcount = self.testmod()
-        print('...done: Fail count = %d, Total count = %d' % (oldfailcount,oldtestcount))
-        print('Entering interactive console')
-        banner='''Doctest insertion targeting object %s within %s
-Press Ctrl+D to stop writing code and incorporate session into the docstring of the targeted object
-To abort this session without writing anything into the targeted file, call the exit() function
->>> from %s import * # automatic import by devshell''' % (self.target_fqn,self.filepath,self.module_fqn)
+        print('    ...done: Fail count = %d, Total count = %d' % (oldfailcount,oldtestcount))
+        print('='*80+'''\nEntering interactive console:
+    Target: %s 
+    File: %s
+(*) Press Ctrl+D to exit and incorporate session into the targeted docstring
+(*) To abort without incorporating anything, call the exit() function
+''' % (self.target_fqn,self.filepath) + '-'*80)
         console = code.InteractiveConsole()
+        print('>>> from %s import * # automatic import by devshell''' % (self.module_fqn))
         console.push('from %s import *' % (self.module_fqn))
+        if resume:
+            doc = inspect.getdoc(self.obj)
+            for line in doc.splitlines():
+                line = line.lstrip()
+                if line.startswith('>>> ') or line.startswith('... '):
+                    print(line)
+                    console.push(line[4:])
         iobuf = self.middle
         _modstdout = _ModStdout(iobuf)
         _modstderr = _ModStderr(iobuf)
@@ -190,7 +199,7 @@ To abort this session without writing anything into the targeted file, call the 
         console.raw_input = mod_input
         #sys.stdout = _modstdout
         #sys.stderr = _modstderr
-        console.interact(banner=banner)
+        console.interact(banner='')
         sys.stdout = sys.__stdout__
         sys.stderr = sys.__stderr__
         if len(iobuf) == 0:
@@ -235,11 +244,11 @@ def set_end_interactive(value=True):
     else:
         if 'PYTHONINSPECT' in os.environ:
             del os.environ['PYTHONINSPECT']
-def doctestify(target_fqn):
+def doctestify(target_fqn,resume=False):
     """
     Start an interactive recording session for the item identified by the given fully qualified name.
     Write the recorded results to the target object's docstring and test that the doctest passes.
     """
     di = DoctestInjector(target_fqn)
-    di.doctest_console()
+    di.doctest_console(resume)
 

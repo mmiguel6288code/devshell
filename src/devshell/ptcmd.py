@@ -1,7 +1,7 @@
 """
 This script takes the Cmd object from the built-in standard library, adds an input_method attribute, and replaces all calls to the standard input() with calls to the input_method attribute
 """
-import ast, inspect, cmd
+import ast, inspect, cmd, shlex
 from prompt_toolkit.completion import Completer, Completion
 from prompt_toolkit import PromptSession
 
@@ -11,12 +11,16 @@ class PTCmd_Completer(Completer):
         self.ptcmd = ptcmd
     def get_completions(self,document,complete_event):
         for suggestion in self.ptcmd.pt_complete(document,complete_event):
-            yield Completion(suggestion,start_position=0)
+            #yield Completion(suggestion,start_position=0)
+            try:
+                yield Completion(suggestion,-len(shlex.split(document.current_line_before_cursor)[-1]))
+            except:
+                pass
 class PTCmd(cmd.Cmd):
     def __init__(self, completekey='tab', stdin=None, stdout=None,**psession_kwargs):
         super().__init__(completekey,stdin,stdout)
         psession_kwargs['completer'] = PTCmd_Completer(self)
-        psession_kwargs['complete_while_typing'] = False
+        psession_kwargs['complete_while_typing'] = True
         self.psession = PromptSession(**psession_kwargs)
         self.input_method = self.psession.prompt
     def pt_complete(self, document,complete_event):

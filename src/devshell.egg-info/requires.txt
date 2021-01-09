@@ -1,0 +1,5 @@
+pypager
+pytest
+coverage
+prompt-toolkit
+pdoc3

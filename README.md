@@ -2,11 +2,65 @@
 
 [View API documentation](http://htmlpreview.github.io/?https://github.com/mmiguel6288code/devshell/blob/master/docs/devshell/index.html)
 
-devshell is a tool to make python development easier.
+devshell provides the power user terminal python developer feeling.
 
-## Key Features
-1. Enables entering an interactive session tied to the docstring of a particular python object. Inputs and responses are automatically recorded and inserted into the docstring as doctests.
-2. Shell-like tool for navigating, inspecting, testing, and making doctests for python objects defined in a project 
+There's normal basic shell navigation with cd, ls, pwd, and then there are python versions of those for navigating through a code tree: pcd, pls, ppwd.
+
+What is a code tree? It is the following types of code blocks:
+
+1. Package
+2. Module
+3. Class
+4. Function/Method/Coroutine
+
+```bash
+$ cd ~/projects/statopy
+$ ls
+LICENSE  __pycache__  statopy.py
+$ python3 -m devshell
+Starting devshell command line interface...
+devshell version 0.0.3
+Welcome to devshell. Type help or ? to list commands. Start a line with ! to execute a shell command in a sub-shell (does not retain environmental variables).
+
+(devshell)$                                                                                         
+```
+If a package or module in your current working directory (the normal type affected by cd and reported with pwd), then those will show up when you type pls.
+You can enter your "python location" into it via pcd and check your current python location with ppwd.
+
+```bash
+(devshell)$ pls                                                                                                                                                                                   
+    statopy                       module                        directory
+(devshell)$ pcd statopy                                                                                                                                                                           
+(devshell)$ pls                                                                                                                                                                                   
+    ScalarProbModel               class                         directory
+    ScalarRegression              class                         directory
+    ScalarStats                   class                         directory
+    VectorStats                   class                         directory
+(devshell)$ pcd ScalarStats                                                                                                                                                                       
+(devshell)$ pls                                                                                                                                                                                   
+    __add__                       function                      non-directory
+    __init__                      function                      non-directory
+    __setattr__                   function                      non-directory
+    consume                       function                      non-directory
+    update                        function                      non-directory
+(devshell)$ ppwd                                                                                                                                                                                  
+/statopy.ScalarStats           (class)
+(devshell)$  
+```
+
+That's nice, but what can you do besides inspecting what code blocks exist?
+
+```bash
+(devshell)$ help                                                                                                                                                                                  
+
+Documented commands (type help <topic>):
+========================================
+EOF       create      doctestify  h            mv    pwd     read     source
+activate  deactivate  edit        help         pcd   pytest  restart  venv  
+cd        debug       editvim     interactive  pip   python  rm     
+coverage  doc         exit        ls           pls   q       rmtree 
+cp        doctest     grep        mkdir        ppwd  quit    run    
+```
 
 ## What are doctests and why should I care?
 Doctests are snippets of text that resemble a Python interactive mode session.

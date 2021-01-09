@@ -1,3 +1,6 @@
+#if you go inside a directory, the python part of things shoud stay up at the top package level
+
+
 import os, pkgutil, os.path, readline, inspect, doctest, sys, re, importlib, pdb, traceback, code, subprocess, shutil,textwrap, argparse, shlex
 from contextlib import contextmanager
 #from cmd import Cmd
@@ -7,6 +10,7 @@ from io import StringIO
 from .injector import doctestify, get_target, get_ast_obj
 from .ptcmd import PTCmd
 from . import __version__
+
 
 
 from prompt_toolkit.shortcuts import PromptSession
@@ -70,6 +74,7 @@ class DevshellCmd(PTCmd):
     _callable = set(['function','method','coroutine','class'])
     def __init__(self,completekey='tab',stdin=None,stdout=None):
         self.cwd = os.getcwd()
+        self.orig_sys_path = sys.path
         self.ppwd = []
         self._pls_cache = None
         self.style = Style.from_dict({
@@ -102,12 +107,18 @@ class DevshellCmd(PTCmd):
             else:
                 current_name,current_type = self.ppwd[-1]
                 if current_type == 'package':
+                    _,bottom_folder = os.path.split(self.cwd)
+                    mod_ppwd = list(self.ppwd)
+                    for i,(package_name,_) in enumerate(self.ppwd):
+                        if bottom_folder == package_name:
+                            mod_ppwd = self.ppwd[i+1:]
+                            break
 
-                    self._pls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in self.ppwd])]),key=lambda mi: mi[1])]
+                            
+
+
+                    self._pls_cache = [((mi[1],'package') if mi[2] else (mi[1],'module')) for mi in sorted(pkgutil.iter_modules([os.path.join(self.cwd,*[item[0] for item in mod_ppwd])]),key=lambda mi: mi[1])]
                     package_fqn = '.'.join(item[0] for item in self.ppwd)
-                    cwd = os.getcwd()
-                    if not cwd in sys.path:
-                        sys.path.insert(0,cwd)
                     try:
                         pkg = __import__(package_fqn)
                     except:
@@ -328,7 +339,7 @@ class DevshellCmd(PTCmd):
         """
         editor = args.strip()
         if len(editor) == 0:
-            print('Specify an editor (e.g. vim, nano, notepad++.exe, etc)')
+            print('Specify an editor (e.g. edit vim, edit nano, edit notepad++.exe, etc)')
             return
         else:
             editor=[editor]
@@ -336,13 +347,13 @@ class DevshellCmd(PTCmd):
         if target_fqn != '':
             current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
+                filepath = self._get_path() + '__init__.py'
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
                     run_cmd(editor+[filepath])
             elif current_type == 'module':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+                filepath = self._get_path() + '.py'
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
@@ -358,6 +369,21 @@ class DevshellCmd(PTCmd):
                 run_cmd(editor+[filepath])
         else:
             print('No target identified')
+
+
+    def _get_path(self):
+        ppwd = list(self.ppwd)
+        while len(ppwd) > 0 and ppwd[-1][1] not in ['package','module']:
+            ppwd.pop(-1)
+        current_name,current_type = ppwd[-1]
+        _,bottom_folder = os.path.split(self.cwd)
+        mod_names = list([name for name,_ in self.ppwd])
+        for i,(package_name,_) in enumerate(self.ppwd):
+            if bottom_folder == package_name:
+                mod_names = [name for name,_ in self.ppwd[i+1:]]
+                break
+        return os.path.abspath(os.path.join(self.cwd,*mod_names))
+
     def do_editvim(self,args):
         """
     Help: (devshell)$ editvim
@@ -372,14 +398,22 @@ class DevshellCmd(PTCmd):
         if target_fqn != '':
             current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
+                filepath = self._get_path() + '__init__.py'
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
 
                     run_cmd(editor+[filepath])
             elif current_type == 'module':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+
+                _,bottom_folder = os.path.split(self.cwd)
+                mod_ppwd = list(self.ppwd)
+                for i,(package_name,_) in enumerate(self.ppwd):
+                    if bottom_folder == package_name:
+                        mod_ppwd = self.ppwd[i+1:]
+                        break
+
+                filepath = self._get_path() + '.py'
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
@@ -388,7 +422,7 @@ class DevshellCmd(PTCmd):
                 #try:
                 if 1:
                     obj,mod,mod_fqn = get_target(target_fqn)
-                    ast_obj,filepath,source = get_ast_obj(target_fqn,obj,mod,mod_fqn)
+                    ast_obj,filepath,source,src_lines = get_ast_obj(target_fqn,obj,mod,mod_fqn)
                     lineno = ast_obj.lineno
                 #except:
                 if 0:
@@ -473,23 +507,31 @@ class DevshellCmd(PTCmd):
         This changes the operating system folder path (current working directory) where devshell will look for packages and modules
         """
         if os.path.exists(args) and os.path.isdir(args):
+            if os.path.exists(os.path.join(args,'__init__.py')):
+                self.do_pcd(args)
+            else:
+                self.ppwd = []
+                self._pls_cache = None
             os.chdir(args)
             self.cwd = os.getcwd()
-            self.ppwd = []
-            self._ls_cache = None
+            sys.path = self.orig_sys_path + [self.cwd]
         else:
             print('Error - path does not exist: %s' % args)
 
     def do_doctestify(self,args):
         """
     Help: (devshell)$ doctestify
+          (devshell)$ doctestify resume
         Performs doctestify on the currently targeted item.
         This will cause an interactive python recording session to begin with all items from the targeted item's module imported in automatically.
         All inputs and outputs will be recorded and entered into the targeted item's docstring as a doctest.
+
+        If "doctestify resume" is called, then the current doctest commands will be automatically executed into the interpreter
         """
         target_fqn = '.'.join(item[0] for item in self.ppwd)
         if target_fqn != '':
-            doctestify(target_fqn)
+            resume = args.strip() == 'resume'
+            doctestify(target_fqn,resume)
         else:
             print('No target identified')
 
@@ -703,14 +745,14 @@ class DevshellCmd(PTCmd):
         if target_fqn != '':
             current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')) + '/__init__.py')
+                filepath = self._get_path() + '/__init__.py'
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
                     with open(filepath,'r') as f:
                         paginate(f.read())
             elif current_type == 'module':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+                filepath = self._get_path() + '.py'
                 if os.path.getsize(filepath) == 0:
                     print('File is empty')
                 else:
@@ -760,11 +802,11 @@ class DevshellCmd(PTCmd):
             current_name,current_type = self.ppwd[-1]
             if current_type == 'package':
                 #recurse through package directory
-                path = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.')))
+                path = self._get_path() 
                 grep(args,path=path)
                 
             elif current_type == 'module':
-                filepath = os.path.abspath(os.path.join(self.cwd,*target_fqn.split('.'))+'.py')
+                filepath = self._get_path() + '.py'
                 grep(args,path=filepath)
             else:
                 try:
@@ -866,10 +908,10 @@ class DevshellCmd(PTCmd):
 
     def _pcd(self,args):
         resolved = False
-        clear_ls_cache = False
+        clear_pls_cache = False
         if args == '.':
             resolved = True
-            clear_ls_cache = False
+            clear_pls_cache = False
         elif args == '..':
             if len(self.ppwd) > 0:
                 last_item,last_item_type = self.ppwd.pop()
@@ -877,39 +919,39 @@ class DevshellCmd(PTCmd):
                     self.do_cd('..')
 
             resolved = True
-            clear_ls_cache = True
+            clear_pls_cache = True
             #go up if in src
         elif args == '/':
             del self.ppwd[:]
             resolved = True
-            clear_ls_cache = True
+            clear_pls_cache = True
         elif '.' not in args:
-            for item,item_type in self._ls():
+            for item,item_type in self._pls():
                 if item == args:
                     if len(self.ppwd) == 0 and item_type == 'package' and not os.path.exists(os.path.join(self.cwd,item,'__init__.py')) and os.path.exists(os.path.join(self.cwd,'src',item,'__init__.py')):
                         self.do_cd('src')
                     self.ppwd.append((item,item_type))
                     resolved = True
-                    clear_ls_cache = True
+                    clear_pls_cache = True
                     break
         else:
             pieces = args.split('.')
             orig_ppwd = list(self.ppwd)
             resolved = True
-            clear_ls_cache = False
-            orig_ls_cache = self._ls_cache
+            clear_pls_cache = False
+            orig_pls_cache = self._pls_cache
             for piece in pieces:
-                self._ls_cache = None
-                piece_resolved,piece_clear_ls_cache = self._pcd(piece)
+                self._pls_cache = None
+                piece_resolved,piece_clear_pls_cache = self._pcd(piece)
                 if not piece_resolved:
                     resolved = False
                     self.ppwd = orig_ppwd
-                    clear_ls_cache = False
+                    clear_pls_cache = False
                     break
                 else:
-                    clear_ls_cache = clear_ls_cache or piece_clear_ls_cache
-            self._ls_cache = orig_ls_cache
-        return (resolved,clear_ls_cache)
+                    clear_pls_cache = clear_pls_cache or piece_clear_pls_cache
+            self._pls_cache = orig_pls_cache
+        return (resolved,clear_pls_cache)
     def do_interactive(self,args):
         """
     Help: (devshell)$ interactive
@@ -950,41 +992,46 @@ class DevshellCmd(PTCmd):
                 If leaving a package to a subfolder named "src", will also change the current working directory to be the parent directory of "src" if a package with the current target as its name exists only in the "src" directory and not in the parent directory.
 
         """
-        resolved,clear_ls_cache = self._pcd(args)
+        resolved,clear_pls_cache = self._pcd(args)
         if not resolved is True:
             print('Error - "%s" does not exist' % args)
         #else:
         #    self.prompt = '(devshell)%s$ ' % self._ppwd()
-        if clear_ls_cache:
-            self._ls_cache = None
+        if clear_pls_cache:
+            self._pls_cache = None
     def complete_pcd(self,text,line,begin_idx,end_idx):
         return self._complete_python(text,line,begin_idx,end_idx)
     def complete_pls(self,text,line,begin_idx,end_idx):
         return self._complete_python(text,line,begin_idx,end_idx)
     def _complete_python(self,text,line,begin_idx,end_idx):
         orig_cwd = self.cwd
+        last_piece = shlex.split(text)[-1]
         if '.' not in text:
-            results = [item[0] for item in self._ls() if item[0].startswith(text)]
+            results = [item[0] for item in self._pls() if item[0].startswith(last_piece)]
             if self.cwd != orig_cwd:
                 self.cwd = orig_cwd
                 os.chdir(orig_cwd)
             return results
 
+        elif set(last_piece) == set(['.']):
+            return []
         else:
             orig_ppwd = list(self.ppwd)
-            orig_ls_cache = self._ls_cache
+            orig_pls_cache = self._pls_cache
             ts = text.split('.')
-            front = '.'.join(ts[:-1])
+            #front = '.'.join(ts[:-1])
+            front = shlex.join(shlex.split('.'.join(ts[:-1]))[1:])
             
             last_piece = ts[-1]
-            resolved,clear_ls_cache = self._pcd(front)
+            resolved,clear_pls_cache = self._pcd(front)
+            #resolved,clear_pls_cache = self._pcd(shlex.join(shlex.split(front)[1:]))
             if resolved:
-                self._ls_cache = None
-                results = [front+'.'+item[0] for item in self._ls() if item[0].startswith(last_piece)]
+                self._pls_cache = None
+                results = [front+'.'+item[0] for item in self._pls() if item[0].startswith(last_piece)]
             else:
                 results = []
             self.ppwd = orig_ppwd
-            self._ls_cache = orig_ls_cache
+            self._pls_cache = orig_pls_cache
             if self.cwd != orig_cwd:
                 self.cwd = orig_cwd
                 os.chdir(orig_cwd)
@@ -1024,7 +1071,7 @@ class DevshellCmd(PTCmd):
         else:
             front = '.'
             last_piece = path
-        return [item for item in os.listdir(front) if item.startswith(last_piece) and os.path.isdir(os.path.join(front,item))]
+        return [(os.path.join(front,item) if front != '.' else item) for item in os.listdir(front) if item.startswith(last_piece) and os.path.isdir(os.path.join(front,item))]
 
     def _complete_files(self,cmd,text,line,begin_idx,end_idx):
         path = re.sub('^\\s*%s\\s*'%cmd,'',line)
@@ -1038,7 +1085,7 @@ class DevshellCmd(PTCmd):
         else:
             front = '.'
             last_piece = path
-        return [item for item in os.listdir(front) if item.startswith(last_piece) and not os.path.isdir(os.path.join(front,item))]
+        return [(os.path.join(front,item) if front != '.' else item) for item in os.listdir(front) if item.startswith(last_piece) and not os.path.isdir(os.path.join(front,item))]
     def _complete_lastdirfile(self,cmd,text,line,begin_idx,end_idx):
         if cmd is not None:
             paths = re.sub('^\\s*%s\\s*'%cmd,'',line)
