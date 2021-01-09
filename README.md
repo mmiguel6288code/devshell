@@ -82,8 +82,8 @@ You can call ```doctestify ``` to enter into an interactive session with the mod
 ```pytest``` and ```coverage``` - pretty self-explanatory. Coverage runs pytest and doctests and produces a combined report.
 
 ## Debugging
-```debug(5,10)```  takes the current function or class and calls it like current_func(5,10), entering debug mode on the first line. You can put any python calling expression and as many arguments as you want.
-If the current code block is a module or package, it requires no inputs, just call ```debug```. For a module, it will enter debug mode on the first line of the module. For a package, it will enter debug mode for the first line of the __init__.py file.
+```debug(5,'hello',[1,2,3])```  takes the current function or class and calls it like <current_func>(5,'hello',[1,2,3]), entering debug mode on the first line. You can put any python calling expression and as many arguments as you want.
+If the current code block is a module or package, it requires no inputs, just call ```debug```. For a module, it will enter debug mode on the first line of the module. For a package, it will enter debug mode for the first line of the \_\_init\_\_.py file.
 
 
 ## Looking at code 
