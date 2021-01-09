@@ -72,24 +72,24 @@ cp        doctestify  h        mv           pwd   read    source
 ```
 
 ## Doctests
-If you navigate to a code block, you can examine the docstring and function definition using the ```bash doc ``` command.
-You can run any doctests present in that code block by using the ```bash doctest ``` command.
-You can call ```bash doctestify ``` to enter into an interactive session with the module's contents imported. All input and output in this session is recorded, and when the session is closed via CTRL+D, the input/output is appended to the docstring of the current code block as an additional set of doctests.
+If you navigate to a code block, you can examine the docstring and function definition using the ```doc ``` command.
+You can run any doctests present in that code block by using the ```doctest ``` command.
+You can call ```doctestify ``` to enter into an interactive session with the module's contents imported. All input and output in this session is recorded, and when the session is closed via CTRL+D, the input/output is appended to the docstring of the current code block as an additional set of doctests.
 
-```bash doctestify resume ``` will open the interactive session and execute all existing doctest commands in the current docstring before turning interactive control over to you. This is useful if you are tweaking code while repeatedly running some test. You don't have to rewrite any setup code multiple times, just use what is in the docstring.
+```doctestify resume ``` will open the interactive session and execute all existing doctest commands in the current docstring before turning interactive control over to you. This is useful if you are tweaking code while repeatedly running some test. You don't have to rewrite any setup code multiple times, just use what is in the docstring.
 
 ## Pytest/Coverage
-```bash pytest``` and ```bash coverage``` - pretty self-explanatory. Coverage runs pytest and doctests and produces a combined report.
+```pytest``` and ```coverage``` - pretty self-explanatory. Coverage runs pytest and doctests and produces a combined report.
 
 ## Debugging
-```bash debug(5,10)```  takes the current function or class and calls it with those arguments, entering debug mode on the first line.
+```debug(5,10)```  takes the current function or class and calls it with those arguments, entering debug mode on the first line.
 If the current code block is a module or package, it will ens
 
 
 ## Looking at code 
-```bash grep pattern [OPTIONS]``` runs a grep-like function that is filtered on the current code block.
+```grep pattern [OPTIONS]``` runs a grep-like function that is filtered on the current code block.
 
-```bash editvim``` opens vim to the line corresponding to the currently targeted code block.
+```editvim``` opens vim to the line corresponding to the currently targeted code block.
 
-```bash source``` opens a paginated view with the text of the current code block
+```source``` opens a paginated view with the text of the current code block
 
