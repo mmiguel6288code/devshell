@@ -408,7 +408,7 @@ class DevshellCmd(PTCmd):
         current_name,current_type = ppwd[-1]
         _,bottom_folder = os.path.split(self.cwd)
         mod_names = list([name for name,_ in self.ppwd])
-        for i,(package_name,_) in enumerate(self.ppwd):
+        for i,(package_name,_) in enumerate([x for x in self.ppwd if x[1] == 'package']):
             if bottom_folder == package_name:
                 mod_names = [name for name,_ in self.ppwd[i+1:]]
                 break
@@ -436,12 +436,12 @@ class DevshellCmd(PTCmd):
                     run_cmd(editor+[filepath])
             elif current_type == 'module':
 
-                _,bottom_folder = os.path.split(self.cwd)
-                mod_ppwd = list(self.ppwd)
-                for i,(package_name,_) in enumerate(self.ppwd):
-                    if bottom_folder == package_name:
-                        mod_ppwd = self.ppwd[i+1:]
-                        break
+                #_,bottom_folder = os.path.split(self.cwd)
+                #mod_ppwd = list(self.ppwd)
+                #for i,(package_name,_) in enumerate(self.ppwd):
+                #    if bottom_folder == package_name:
+                #        mod_ppwd = self.ppwd[i+1:]
+                #        break
 
                 filepath = self._get_path() + '.py'
                 if os.path.getsize(filepath) == 0:
