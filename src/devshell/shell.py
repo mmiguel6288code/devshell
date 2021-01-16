@@ -536,9 +536,29 @@ class DevshellCmd(PTCmd):
     Help: (devshell)$ cd path
         This changes the operating system folder path (current working directory) where devshell will look for packages and modules
         """
+        
         if os.path.exists(args) and os.path.isdir(args):
             if os.path.exists(os.path.join(args,'__init__.py')):
-                self.do_pcd(args)
+                import pdb; pdb.set_trace()
+                package_path = os.path.abspath(args)
+                highest_package_path = package_path
+                looking_path = os.path.dirname(package_path)
+                last_looking_path = None
+                while len(looking_path) > 0 and looking_path != last_looking_path:
+                    if os.path.exists(os.path.join(looking_path,'__init__.py')):
+                        highest_package_path = looking_path
+                    last_looking_path = looking_path
+                    looking_path = os.path.dirname(looking_path)
+                new_args = os.path.relpath(args,highest_package_path)
+                if new_args != args:
+                    self.ppwd = []
+                    self._pls_cache = None
+                    os.chdir(highest_package_path)
+                    self.cwd = os.getcwd()
+                    self.do_cd(new_args)
+                    return
+                else:
+                    self.do_pcd(args)
             else:
                 self.ppwd = []
                 self._pls_cache = None
